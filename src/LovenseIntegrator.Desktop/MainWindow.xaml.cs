@@ -17,13 +17,23 @@ namespace LovenseIntegrator.Desktop;
 
 public partial class MainWindow : Window
 {
+    private TextBox RuleName => RuleAssignmentEditor.RuleName;
+    private ComboBox TargetSelector => RuleAssignmentEditor.TargetSelector;
+    private ComboBox ApplicationSelector => RuleAssignmentEditor.ApplicationSelector;
+    private Slider IntensitySlider => RuleAssignmentEditor.IntensitySlider;
+    private Slider DurationSlider => RuleAssignmentEditor.DurationSlider;
+    private StackPanel EffectSettings => RuleAssignmentEditor.EffectSettings;
+    private StackPanel PulseSettings => RuleAssignmentEditor.PulseSettings;
+    private Expander AdvancedSettings => RuleAssignmentEditor.AdvancedSettings;
+    private ScrollViewer EditorScroll => RuleAssignmentEditor.EditorScroll;
+    private StackPanel Editor => RuleAssignmentEditor.Editor;
+    private Controls.EffectPreview EffectGraph => RuleAssignmentEditor.EffectGraph;
     private readonly MainViewModel vm;
     private EmergencyHotkey? hotkey;
     private bool capturing, closing, closed;
     private KeyRecording? recorder;
     private RuleEditor? recordingDraft;
     private string originalKeys = "";
-    private bool refreshingApplications;
     private readonly UpdateService updates;
     private bool restartForUpdate;
     public MainWindow() : this(0) { }
@@ -115,22 +125,9 @@ public partial class MainWindow : Window
     private void AnyKey(object sender, RoutedEventArgs e) { CancelRecording(); vm.Draft.Keys = ""; }
     private void RefreshApplications(object sender, EventArgs e)
     {
-        refreshingApplications = true;
-        try
-        {
-            vm.RefreshApplications();
-            ApplicationSelector.GetBindingExpression(System.Windows.Controls.Primitives.Selector.SelectedValueProperty)?.UpdateTarget();
-        }
-        finally { refreshingApplications = false; }
+        vm.RefreshApplications();
+        ApplicationSelector.GetBindingExpression(ComboBox.SelectedValueProperty)?.UpdateTarget();
     }
-    private void ApplicationSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (!refreshingApplications && DataContext is MainViewModel model && ApplicationSelector.SelectedItem is Choice<string> choice && (ApplicationSelector.IsDropDownOpen || ApplicationSelector.IsKeyboardFocusWithin))
-            model.Draft.Process = choice.Value;
-    }
-    private void EffectSelected(object sender, RoutedEventArgs e) { if (sender is RadioButton { Tag: string name }) vm.Draft.Action = Enum.Parse<ActionKind>(name); }
-    private void IntensityPreset(object sender, RoutedEventArgs e) { if (sender is Button { Tag: string number }) vm.Draft.Intensity = int.Parse(number); }
-    private void DurationPreset(object sender, RoutedEventArgs e) { if (sender is Button { Tag: string number }) vm.Draft.DurationSeconds = double.Parse(number, System.Globalization.CultureInfo.InvariantCulture); }
     private bool Valid(DependencyObject parent)
     {
         if (HasErrors(parent)) { vm.Log(L.T("Check the numeric fields outlined in red.")); return false; }

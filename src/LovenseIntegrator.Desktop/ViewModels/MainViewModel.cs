@@ -10,7 +10,7 @@ using LovenseIntegrator.Desktop.Transports;
 namespace LovenseIntegrator.Desktop.ViewModels;
 
 public sealed record Choice<T>(T Value, string Label);
-public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
+public sealed class MainViewModel : IAssignmentEditorContext, INotifyPropertyChanged, IAsyncDisposable
 {
     private readonly WindowsInput input = new();
     private readonly RuleEngine engine = new();
@@ -47,7 +47,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     public IReadOnlyList<Choice<string>> WheelDirections { get; } = [new("", L.T("Either direction")), new("Up", L.T("Up")), new("Down", L.T("Down"))];
     public string[] Transports { get; } = [L.T("Demo mode"), L.T("Bluetooth (direct connection)"), L.T("Lovense Remote (Local API)")];
     public int TransportIndex { get => transportIndex; set { transportIndex = value; Changed(); } }
-    public Toy? SelectedToy { get; set; }
+    private Toy? selectedToy;
+    public Toy? SelectedToy { get => selectedToy; set { selectedToy = value; Changed(); } }
     public int ManualIntensity { get => manualIntensity; set { manualIntensity = value; Changed(); } }
     public double ManualDuration { get; set; } = 3;
     public bool Running { get => running; private set { running = value; Changed(); Changed(nameof(RunLabel)); Changed(nameof(RunStatus)); } }
@@ -68,19 +69,18 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         {
             draft.PropertyChanged -= DraftChanged;
             draft = value; draft.PropertyChanged += DraftChanged; lastDraftToyId = draft.ToyId;
-            Changed(); Changed(nameof(EventHelp)); Changed(nameof(Targets));
+            Changed(); Changed(nameof(EventHelp)); Changed(nameof(Summary)); Changed(nameof(Targets)); Changed(nameof(EffectSources));
             RefreshApplications();
         }
     }
     public IReadOnlyList<EventOption> Events => RulePresentation.Events;
-    public IReadOnlyList<Choice<ActionKind>> Actions { get; } =
-    [new(ActionKind.Vibrate, L.T("Vibration")), new(ActionKind.Pulse, L.T("Pulse")), new(ActionKind.RateMapped, L.T("Intensity from typing speed")), new(ActionKind.Stop, L.T("Stop"))];
     public string EventHelp => Draft.EventHelp;
+    public string Summary => Draft.Summary;
     public MainViewModel(int initialTransport = 0, Func<int, string, IToyTransport>? transportFactory = null)
     {
         Screen = new(this);
         createTransport = transportFactory ?? ((index, url) => index switch { 1 => new IsolatedBleTransport(), 2 => new LocalApiTransport(url), _ => new DemoTransport() });
-        Rules.CollectionChanged += (_, _) => Changed(nameof(AutomationRules));
+        Rules.CollectionChanged += (_, _) => { Changed(nameof(AutomationRules)); Changed(nameof(EffectSources)); };
         TransportIndex = initialTransport;
         try { SetProfile(ProfileStore.Load()); }
         catch (Exception ex) { canSave = false; SetProfile(ProfileStore.Defaults()); Log(L.F($"Could not read the profile: {ex.Message}. Original file preserved; autosave is disabled.")); }
@@ -111,7 +111,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     }
     private void DraftChanged(object? sender, PropertyChangedEventArgs e)
     {
-        Changed(nameof(EventHelp));
+        Changed(nameof(EventHelp)); Changed(nameof(Summary));
+        Changed(nameof(EffectSources));
         if (lastDraftToyId == Draft.ToyId) return;
         lastDraftToyId = Draft.ToyId;
         Changed(nameof(Targets));
@@ -131,10 +132,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         if (Draft.Process.Length > 0) names.Add(Draft.Process);
         // Replace as one list to keep the selected process stable while refreshing.
         applicationChoices = new[] { new Choice<string>("", L.T("Any application")) }.Concat(names.OrderBy(n => n).Select(n => new Choice<string>(n, n))).ToArray();
-        Changed(nameof(ApplicationChoices));
+        Changed(nameof(ApplicationChoices)); Changed(nameof(Applications));
     }
     private IReadOnlyList<Choice<string>> applicationChoices = [];
     public IReadOnlyList<Choice<string>> ApplicationChoices => applicationChoices;
+    public IReadOnlyList<Choice<string>> Applications => ApplicationChoices;
+    public IReadOnlyList<Rule> EffectSources => Rules.Where(Draft.CanCopyEffect).ToArray();
     public void Log(string message)
     {
         if (dispatcher.HasShutdownStarted) return;

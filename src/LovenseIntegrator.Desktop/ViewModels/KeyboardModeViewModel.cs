@@ -44,7 +44,7 @@ public static class KeyboardLayout
 }
 
 public sealed record KeyboardAssignment(Guid Id, string Name, string KeysText, string Scope, bool Enabled);
-public sealed class InputModeViewModel : INotifyPropertyChanged
+public sealed class InputModeViewModel : IAssignmentEditorContext, INotifyPropertyChanged
 {
     private readonly MainViewModel owner;
     public bool IsMouse { get; }
@@ -64,7 +64,7 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     public IReadOnlyList<Choice<string>> Applications => owner.ApplicationChoices.Concat(draft.Process.Length > 0 && !owner.ApplicationChoices.Any(c => c.Value == draft.Process) ? [new Choice<string>(draft.Process, draft.Process)] : Array.Empty<Choice<string>>()).ToArray();
     public IReadOnlyList<Toy> Targets => new[] { new Toy("", L.T("All connected"), true) }.Concat(owner.Toys)
         .Concat(draft.ToyId.Length > 0 && !owner.Toys.Any(t => t.Id == draft.ToyId) ? [new Toy(draft.ToyId, L.T("Unavailable toy from profile"), false)] : Array.Empty<Toy>()).ToArray();
-    public IReadOnlyList<Choice<ActionKind>> Effects { get; } = [new(ActionKind.Vibrate, L.T("Vibration")), new(ActionKind.Pulse, L.T("Pulse")), new(ActionKind.Stop, L.T("Stop"))];
+    public IReadOnlyList<Rule> EffectSources => owner.Rules.Where(Draft.CanCopyEffect).ToArray();
     public int SelectionCount => all ? InputIds.Count(IsSelected) : included.Count;
     public string SelectionText => all ? L.F($"{(IsMouse ? L.T("Whole mouse") : L.T("All keys"))} · excluded: {excluded.Count}") : L.F($"Selected {(IsMouse ? L.T("inputs") : L.T("keys"))}: {included.Count}");
     public string EditStatus => SelectedId is null ? L.T("New assignment") : L.T("Edit assignment");
@@ -87,7 +87,7 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
         owner.Rules.CollectionChanged += (_, _) =>
         {
             if (SelectedId is { } id && !owner.Rules.Any(r => r.Id == id)) New();
-            Changed(nameof(Groups)); SelectionChanged?.Invoke();
+            Changed(nameof(Groups)); Changed(nameof(EffectSources)); SelectionChanged?.Invoke();
         };
         owner.Toys.CollectionChanged += (_, _) => Changed(nameof(Targets));
         owner.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(MainViewModel.ApplicationChoices)) Changed(nameof(Applications)); };
@@ -96,7 +96,7 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     private void Changed(string property) => PropertyChanged?.Invoke(this, new(property));
     private void DraftChanged(object? sender, PropertyChangedEventArgs e)
     {
-        Changed(nameof(Summary));
+        Changed(nameof(Summary)); Changed(nameof(EffectSources));
         if (lastProcess != draft.Process) { lastProcess = draft.Process; Changed(nameof(Applications)); }
         if (lastToyId != draft.ToyId) { lastToyId = draft.ToyId; Changed(nameof(Targets)); }
     }
@@ -104,7 +104,7 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     {
         draft.PropertyChanged -= DraftChanged; draft = new(rule); draft.PropertyChanged += DraftChanged;
         lastProcess = draft.Process; lastToyId = draft.ToyId;
-        Changed(nameof(Draft)); Changed(nameof(EditStatus)); Changed(nameof(SelectedId)); Changed(nameof(Applications)); Changed(nameof(Targets)); UpdateSelection();
+        Changed(nameof(Draft)); Changed(nameof(EffectSources)); Changed(nameof(EditStatus)); Changed(nameof(SelectedId)); Changed(nameof(Applications)); Changed(nameof(Targets)); UpdateSelection();
     }
     public void New()
     {

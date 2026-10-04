@@ -17,14 +17,9 @@ public partial class ScreenModeView : UserControl
     public void Initialize(MainViewModel main) { owner = main; DataContext = main.Screen; Model.New(); }
     private async void Monitor(object sender, RoutedEventArgs e) { if (!HasErrors(RegionInputs)) await Model.ToggleMonitoringAsync(); }
     private void NewAssignment(object sender, RoutedEventArgs e) => Model.New();
-    private void SaveAssignment(object sender, RoutedEventArgs e) { if (!HasErrors(AssignmentEditor)) Model.Save(); }
+    private void SaveAssignment(object sender, RoutedEventArgs e) { if (!HasErrors(AssignmentEditor, RegionInputs)) Model.Save(); }
     private void DeleteAssignment(object sender, RoutedEventArgs e) => Model.Delete();
-    private void RefreshTargets(object sender, EventArgs e)
-    {
-        // Refresh a snapshot without changing the stored target when it is unavailable.
-        var combo = (ComboBox)sender; var target = Model.Draft.ToyId;
-        combo.ItemsSource = Model.Targets; Model.Draft.ToyId = target;
-    }
+    private async void TestAssignment(object sender, RoutedEventArgs e) { if (!HasErrors(AssignmentEditor, RegionInputs)) await Model.TestAsync(); }
     private async void Import(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog { Filter = "Screen assignments (*.json)|*.json" };
@@ -48,10 +43,12 @@ public partial class ScreenModeView : UserControl
         }
         catch (Exception ex) { owner.Log(ex.Message); }
     }
-    private static bool HasErrors(DependencyObject node)
+    private static bool HasErrors(DependencyObject node, DependencyObject? excluded = null)
     {
+        if (ReferenceEquals(node, excluded)) return false;
+        if (node is UIElement { Visibility: Visibility.Collapsed }) return false;
         if (Validation.GetHasError(node)) return true;
-        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++) if (HasErrors(VisualTreeHelper.GetChild(node, i))) return true;
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++) if (HasErrors(VisualTreeHelper.GetChild(node, i), excluded)) return true;
         return false;
     }
 }

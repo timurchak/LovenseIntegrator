@@ -1,11 +1,11 @@
 # Screen mode and WowScreenEvents
 
-Screen mode reads a small color block in the foreground WoW Retail client and turns it into named input events. It does not send input to WoW, read process memory, OCR the desktop, or let the addon specify toy commands. Select an event, effect and target in Screen; save the assignment. The existing engine/executor applies priority, cooldown, observation mode, Stop and command cancellation.
+Screen mode reads a small color block in the foreground WoW Retail client and turns it into named input events. It does not send input to WoW, read process memory, OCR the desktop, or let the addon specify toy commands. Select an event in Screen, then configure an effect and target in the shared assignment editor; save the assignment. Signal settings are inside the trigger section, while Save/Test/Delete remain in the fixed footer. The existing engine/executor applies priority, cooldown, observation mode, Stop and command cancellation.
 
 ## Setup
 
 1. Install the optional, separately distributed `WowScreenEvents` addon; it is not included in the application installer. Reload WoW. `/wse show` displays the block in the top-left corner.
-2. In Screen, use X=0, Y=0 and Cell=4 by default. Coordinates are physical pixels relative to the WoW **client** area, so moving the window or changing monitors does not require desktop offsets. The grid is 8×8 cells (default 32×32 pixels). `/wse size 1` produces an actual 8×8-pixel block; larger cells are more robust. `/wse position X Y` changes its client offset; match it in the app.
+2. In Screen, expand **Signal setup and recent events**. Use X=0, Y=0 and Cell=4 by default. Coordinates are physical pixels relative to the WoW **client** area, so moving the window or changing monitors does not require desktop offsets. The grid is 8×8 cells (default 32×32 pixels). `/wse size 1` produces an actual 8×8-pixel block; larger cells are more robust. `/wse position X Y` changes its client offset; match it in the app.
 3. Click Start reading and switch to WoW in windowed/borderless mode. The app shows a nearest-neighbor live preview, connection status and the last 30 semantic events. `/wse test` is preview-only even when rules are enabled.
 4. Configure/save an assignment and explicitly Enable rules. The first packet is a baseline; only subsequent events can trigger. Observation mode logs matches without automatic commands. No binding exists until the user saves one or imports a bundle.
 

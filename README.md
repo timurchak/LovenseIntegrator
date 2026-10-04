@@ -12,10 +12,10 @@ The **Updates** tab checks stable GitHub releases, downloads updates in the back
 
 The self-contained local build is `dist/win-x64/LovenseIntegrator.exe`; no installed .NET runtime is required. A normal launch starts in demo mode with rules paused. Choose **English** or **Русский** in **Settings → App language**, click **Save language**, then restart when convenient. English is the default. Rule names, physical key codes and JSON contracts remain unchanged. AI instructions and low-level diagnostic messages remain in English.
 
-1. Select **Bluetooth (direct connection)**.
+1. Open **Devices** and select **Bluetooth (direct connection)**.
 2. Turn on the toy and release its connection from your phone or another application.
 3. Click **Connect / refresh**. The first Bluetooth connection downloads the verified SDK directly from Lovense and requires internet access. Later connections use the cached file. Scanning takes about four seconds, followed by connection. Refresh stops current effects and pauses rules.
-4. Select a connected toy. Use manual controls to test a short effect at a low intensity when ready.
+4. Open **Manual control**, select a connected toy and test a short effect at a low intensity when ready.
 5. Configure and save rules, then click **Enable rules**.
 
 **STOP ALL** and global **Ctrl+Alt+F12** send Stop to all toys and pause rules. Closing the app also sends Stop. If the hotkey is occupied, the app reports it and the button remains available.
@@ -34,17 +34,23 @@ An alternative transport is **Lovense Remote (Local API)**. The documented PC en
 - Demo Lush/Ferri without physical commands.
 - Screen mode: WoW color-block capture and preview, named game events, event-to-effect assignments, import/export and AI instructions. See [setup](docs/SCREEN.md).
 - Visual **Keyboard** and **Mouse** modes with grouped selections, exclusions, presets, per-application/title conditions, import/export and embedded AI instructions.
-- **Other events** editor: when → where → action, searchable catalog, key recording, effect cards, sliders, graph and a readable rule description.
+- One shared assignment editor in **Keyboard**, **Mouse**, **Screen** and **Other events**: trigger → effect, with identical effect controls, target selection, preview and Save/Test/Delete actions. Copy a saved effect across categories without changing the destination trigger.
 - 21 event types and seven recipes: holds, double presses, typing rhythm, no-correction streak, activity resumed, interval timer and keyboard feedback. Recipes create drafts that must be saved.
 - **Observe without actions** logs automatic matches. Manual controls and **Test action** still send explicit commands.
 - JSON profiles at `%LOCALAPPDATA%\LovenseIntegrator\profile.json`, import/export and version validation.
 - Last 100 trigger/error messages in memory. Typed text is not stored. Global hooks run only while rules are enabled, do not block input and ignore injected input.
 
+## Shared assignment workflow
+
+Choose a trigger category, click **+ Assignment**, configure its trigger, then attach an effect in the same editor used by every category. **Save assignment**, **Test effect** and **Delete assignment** stay visible while the editor scrolls. **Copy saved effect** → select an assignment → **Apply effect** copies action, intensity, duration, pulse interval and toy target into the current draft. Trigger inputs, name, conditions, cooldown, priority and identity stay unchanged. Copies are independent, not linked presets, and require saving. Unsupported speed/continuous-wheel combinations are excluded. Editing and previewing never sends commands.
+
+**Devices** and **Manual control** are separate tabs; no permanent device sidebar occupies the trigger workspace. **STOP ALL** and the emergency hotkey remain available across tabs. Mode imports, embedded AI guides and JSON formats are unchanged.
+
 ## Keyboard assignments
 
 Select keys by clicking without Ctrl, or use All keys, Typing keys, Letters, WASD, Arrows or NumPad. After All keys, clicking a key makes it an exclusion. In ordinary selection, clicking again deselects it. Purple means selected, pink means excluded, and a dot marks an enabled saved assignment.
 
-Choose **Feedback · 150 ms**, **Typewriter · 120 ms** or **Pulse**, then adjust intensity, duration, cooldown and toy. This mode uses milliseconds. Settings sit below the keyboard; scroll down at smaller window sizes. Optionally choose an application and a case-insensitive window-title substring. Save the assignment, then enable rules. Diagrams and previews do not send commands; **Test effect** does.
+Choose **Vibration**, **Pulse** or **Stop**, then adjust intensity, duration, cooldown and toy. The common editor provides duration shortcuts (including 100/150/250 ms) and exact millisecond input; enter 120 for typewriter feedback. **Edit effect ↓** jumps to the effect settings below the trigger. Optionally choose an application and a case-insensitive window-title substring. Save the assignment, then enable rules. Diagrams and previews do not send commands; **Test effect** does.
 
 Example: general feedback on all keys except Esc/Ctrl, plus stronger WASD feedback in a game. Matching assignments compare Priority, application specificity, title specificity and smaller key groups, then stable Id. During the winner's cooldown, presses are skipped without falling back to a weaker assignment.
 
@@ -56,8 +62,8 @@ Compatible old key-down rules can be opened without changing behavior; saving co
 
 The diagram has left/right buttons, wheel click, X1/X2 and separate Up/Down wheel zones. **Whole mouse**, **Five buttons** and **Wheel ↑ ↓** select groups; clicking again deselects or adds an exclusion when the whole mouse is selected.
 
-- **Click · 100 ms**: one bounded effect per button press or wheel event, with zero cooldown. New events replace the previous effect; rapid impulses can merge.
-- **While scrolling**: matching wheel events renew vibration. Default stop timeout is 150 ms without events, adjustable from 100–1000 ms. Cooldown does not block wheel renewal; selected buttons still produce a single effect.
+- New assignments default to **100 ms** and zero cooldown: one bounded effect per button press or wheel event. New events replace the previous effect; rapid impulses can merge.
+- **Wheel: vibrate while scrolling** in the trigger settings: matching wheel events renew vibration. Default stop timeout is 150 ms without events, adjustable from 100–1000 ms. Cooldown does not block wheel renewal; selected buttons still produce a single effect.
 - **Pulse**: a regular bounded effect. Disable continuous wheel vibration to use ordinary vibration, pulse or Stop on wheel events.
 
 Create separate assignments for different Up/Down effects. Groups, exclusions, application/title filters, toy selection and priority behave as in keyboard mode. Old button/wheel rules retain their input scope when converted.
@@ -99,7 +105,7 @@ Examples also ship beside the standalone executable. Full-profile import/export 
 | Mouse double click | Button or empty | Click interval, ms | At least threshold |
 | Mouse held | Button or empty | Minimum hold, ms | Unused |
 
-This table describes JSON units; the ordinary editor converts relevant timing fields to seconds. **Record** captures a key; for a combination, press together and release all keys (at least two). For a sequence, press in order then Enter, up to 12 keys. Esc cancels; changing focus/rule cancels too. Advanced fields accept WPF key names with distinct left/right modifiers, case-insensitively.
+This table describes JSON units; event thresholds and measurement windows are shown in seconds, while the common effect editor uses exact milliseconds for duration and cooldown. **Record** captures a key; for a combination, press together and release all keys (at least two). For a sequence, press in order then Enter, up to 12 keys. Esc cancels; changing focus/rule cancels too. Advanced fields accept WPF key names with distinct left/right modifiers, case-insensitively.
 
 Holds/combinations trigger once until release. Windows autorepeat does not count toward typing speed. Speed rules trigger on threshold crossing; below waits for a full initial window. **Intensity from typing speed** computes `speed / threshold × intensity`, capped at 20, once per trigger rather than continuously. No input includes keyboard, buttons and wheel, not mouse movement.
 

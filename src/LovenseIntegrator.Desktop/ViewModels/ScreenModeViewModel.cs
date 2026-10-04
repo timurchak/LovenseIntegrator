@@ -20,7 +20,7 @@ public sealed class ScreenRegion
     public bool Valid => X is >= 0 and <= 32768 && Y is >= 0 and <= 32768 && CellSize is >= 1 and <= 16;
 }
 
-public sealed class ScreenModeViewModel : INotifyPropertyChanged, IAsyncDisposable
+public sealed class ScreenModeViewModel : IAssignmentEditorContext, INotifyPropertyChanged, IAsyncDisposable
 {
     private readonly MainViewModel owner;
     private readonly Func<int, int, int, ScreenCaptureResult> capture;
@@ -41,7 +41,9 @@ public sealed class ScreenModeViewModel : INotifyPropertyChanged, IAsyncDisposab
     {
         this.owner = owner;
         this.capture = capture ?? ScreenCapture.Read;
-        owner.Rules.CollectionChanged += (_, _) => Changed(nameof(Assignments));
+        owner.Rules.CollectionChanged += (_, _) => { if (selected is not null && !owner.Rules.Any(r => r.Id == selected.Id)) New(); Changed(nameof(Assignments)); Changed(nameof(EffectSources)); };
+        owner.Toys.CollectionChanged += (_, _) => Changed(nameof(Targets));
+        owner.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(MainViewModel.ApplicationChoices)) Changed(nameof(Applications)); };
         try { Region = JsonSerializer.Deserialize<ScreenRegion>(File.ReadAllText(SettingsPath)) is { Valid: true } saved ? saved : new(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { Region = new(); }
     }
@@ -49,11 +51,36 @@ public sealed class ScreenModeViewModel : INotifyPropertyChanged, IAsyncDisposab
     public ScreenRegion Region { get; }
     public IReadOnlyList<Rule> Assignments => owner.Rules.Where(r => r.Event == EventKind.ScreenEvent).ToArray();
     public IReadOnlyList<Choice<string>> Events => ScreenEvents.All.Where(e => e.Id != "wow.test").Select(e => new Choice<string>(e.Id, L.T(e.Name))).ToArray();
-    public IReadOnlyList<Choice<ActionKind>> Actions { get; } = [new(ActionKind.Vibrate, L.T("Vibration")), new(ActionKind.Pulse, L.T("Pulse")), new(ActionKind.Stop, L.T("Stop"))];
+    public IReadOnlyList<Rule> EffectSources => owner.Rules.Where(Draft.CanCopyEffect).ToArray();
     public IReadOnlyList<Toy> Targets => owner.Toys.Prepend(new Toy("", L.T("All connected"), true))
         .Concat(Draft.ToyId.Length > 0 && !owner.Toys.Any(t => t.Id == Draft.ToyId) ? [new Toy(Draft.ToyId, L.T("Unavailable toy from profile"), false)] : []).ToArray();
     public Rule? Selected { get => selected; set { selected = value; if (value is not null) Draft = new(value); Changed(); Changed(nameof(Targets)); } }
-    public RuleEditor Draft { get => draft; private set { draft = value; Changed(); Changed(nameof(Targets)); } }
+    public RuleEditor Draft
+    {
+        get => draft;
+        private set
+        {
+            draft.PropertyChanged -= DraftChanged;
+            draft = value; draft.PropertyChanged += DraftChanged;
+            Changed(); Changed(nameof(Summary)); Changed(nameof(Targets)); Changed(nameof(Applications)); Changed(nameof(EffectSources));
+        }
+    }
+    private string lastToyId = "";
+    private string lastProcess = "";
+    private void DraftChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        Changed(nameof(Summary));
+        if (lastToyId != draft.ToyId) { lastToyId = draft.ToyId; Changed(nameof(Targets)); }
+        if (lastProcess != draft.Process) { lastProcess = draft.Process; Changed(nameof(Applications)); }
+    }
+    public IReadOnlyList<Choice<string>> Applications => owner.ApplicationChoices.Concat(Draft.Process.Length > 0 && !owner.ApplicationChoices.Any(c => c.Value == Draft.Process) ? [new Choice<string>(Draft.Process, Draft.Process)] : Array.Empty<Choice<string>>()).ToArray();
+    public void RefreshApplications() { owner.RefreshApplications(); Changed(nameof(Applications)); }
+    public Task TestAsync()
+    {
+        if (Draft.Validate() is { } error) { owner.Log(error); return Task.CompletedTask; }
+        return owner.FireAsync(new(Draft.Copy(), 1), false);
+    }
+    public string Summary => Draft.Summary;
     public bool Monitoring => lifetime is not null;
     public bool CanConfigure => !Monitoring;
     public bool CanToggle => !stopping;

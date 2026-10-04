@@ -6,7 +6,7 @@
 
 Windows autorepeat is not a new physical press. Holds/combinations trigger once until release. Typing speed uses a sliding window; below-threshold detection waits for the first full window. Backspace/Delete reset CleanTypingStreak; modifiers/arrows do not contribute. InputIdle includes keys, buttons and wheel events, not pointer movement.
 
-The general editor displays seconds where profiles store milliseconds. Visual keyboard/mouse modes display short effects in milliseconds. In JSON, `DurationSeconds` is seconds; `WindowMs`, `CooldownMs`, `PulseMs` and `WheelIdleMs` are milliseconds. Simplifying the UI must not change existing field units.
+All four assignment categories use one editor. Exact effect duration and cooldown fields display milliseconds; duration shortcuts retain their explicit ms/s labels. Trigger thresholds/measurement windows and the pulse slider display seconds. In JSON, `DurationSeconds` is seconds; `WindowMs`, `CooldownMs`, `PulseMs` and `WheelIdleMs` are milliseconds. Simplifying the UI must not change existing field units.
 
 Current ranges: intensity 0–20; duration 0.1–300 s; pulse interval 150–10000 ms; measurement window 100–60000 ms. Cooldown is 100–3600000 ms for ordinary/keyboard rules and 0–3600000 ms for MouseLayer. WheelIdleMs is 100–1000 ms. Full contracts are in `Rule.Validate`, `ToyCommand.Validate` and preset validators.
 
@@ -24,13 +24,13 @@ The 104-key diagram uses Windows/WPF Key IDs, not typed text or per-language lay
 
 `KeyboardLayer=true`, `Event=KeyDown`, Actions Vibrate/Pulse/Stop. Empty Keys means all keys minus ExcludedKeys. Assignments override matching ordinary KeyDown rules; combinations, holds and other events still participate separately. Opening a compatible old KeyDown does not migrate it automatically; saving in the new mode converts it to a layer with the same Id.
 
-Presets: feedback 150 ms, typewriter 120 ms, pulse. The former 2-second minimum was a prototype restriction, not an established Windows BLE limit. Do not restore it. Motor/radio timing has not been measured; a programmed pulse does not guarantee a distinct physical response to every key.
+The shared editor offers short duration shortcuts, exact duration input (including 120 ms typewriter feedback), and vibration/pulse/Stop choices. The former 2-second minimum was a prototype restriction, not an established Windows BLE limit. Do not restore it. Motor/radio timing has not been measured; a programmed pulse does not guarantee a distinct physical response to every key.
 
 ## Mouse and wheel
 
 Five buttons: Left, Right, Middle, X1, X2. Two wheel directions: Up, Down. `MouseLayer=true`, `Event=MouseDown` is the assignment container for both buttons and wheel. Do not change Event to MouseWheel in a new layer export. Old ordinary MouseDown/MouseWheel rules are normalized when saved; their empty Keys must not unexpectedly expand from buttons to wheel or vice versa.
 
-The click preset is 100 ms with zero cooldown. WheelContinuous requires MouseLayer + Vibrate. Each matching wheel event renews the effect for WheelIdleMs (default 150), ignoring cooldown for renewal; selected buttons still use ordinary duration/cooldown. There is no wheel-stopped event: silence between Windows messages determines the stop. One Windows event may represent more than one physical wheel notch.
+New mouse assignments use 100 ms with zero cooldown. WheelContinuous requires MouseLayer + Vibrate. Each matching wheel event renews the effect for WheelIdleMs (default 150), ignoring cooldown for renewal; selected buttons still use ordinary duration/cooldown. There is no wheel-stopped event: silence between Windows messages determines the stop. One Windows event may represent more than one physical wheel notch.
 
 For renewal, RuleMatch sets RenewalId to Rule.Id. BleTransport cancels/replaces the stop timer without resending a positive level if the owner and intensity are unchanged. Stop, another effect and device disconnection cancel the timer. An old timer callback must never stop a newer effect. Losing the matching window stops renewal; the final timer ends the effect. Test effect sends a bounded impulse.
 
@@ -53,6 +53,8 @@ AI contracts: [keyboard](../KEYBOARD_AI_RULES.md), [mouse](../MOUSE_AI_RULES.md)
 
 ## UI changes
 
-Preserve Keyboard, Mouse and Other events modes, visual selection and simple presets. Show fields relevant to the selected event; ordinary setup must not require editing JSON. Diagrams, graphs, preset changes and recipes edit a draft and do not activate motors.
+`Controls/AssignmentEditorView` owns the shared name/enabled fields, trigger content slot, effect controls, target, conditions, preview and fixed Save/Test/Delete footer. Keyboard, Mouse, Screen and Other events supply only trigger content and list/import behavior. `IAssignmentEditorContext` is the common binding contract. Preserve visual selection and simple duration shortcuts. Show fields relevant to the selected event; ordinary setup must not require editing JSON. Diagrams, graphs, preset changes and recipes edit a draft and do not activate motors.
+
+Copy saved effect copies only Action, Intensity, DurationSeconds, PulseMs and ToyId. It does not save or dispatch, and never changes trigger identity, inputs, filters, cooldown, priority or wheel renewal. These are independent copies, not a new linked effect-library format. Incompatible speed and wheel actions are filtered and rejected again at the copy boundary. Devices and manual controls live in separate tabs; Stop remains global.
 
 Check minimum window size, scrolling to settings below the diagram, long labels, ru-RU/en-US numeric input, unavailable selected devices and recording cancellation on focus/rule changes. Global hooks and actual monitor DPI require separate checks; the offscreen harness does not prove those behaviors.

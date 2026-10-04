@@ -12,6 +12,10 @@ namespace LovenseIntegrator.Desktop;
 
 public partial class MouseModeView : UserControl
 {
+    private ComboBox MouseApplication => AssignmentEditor.ApplicationSelector;
+    private ComboBox MouseTarget => AssignmentEditor.TargetSelector;
+    private Controls.EffectPreview MouseGraph => AssignmentEditor.EffectGraph;
+    private ScrollViewer SettingsScroll => AssignmentEditor.EditorScroll;
     internal InputModeViewModel Model { get; private set; } = null!;
     private readonly List<(Button Button, string Key, TextBlock Marker)> keys = [];
     private bool refreshing;
@@ -70,7 +74,6 @@ public partial class MouseModeView : UserControl
         finally { refreshing = false; }
     }
     private void SelectKeys(object sender, RoutedEventArgs e) => Model.Select((string)((Button)sender).Tag);
-    private void ChoosePreset(object sender, RoutedEventArgs e) => Model.Preset((string)((Button)sender).Tag);
     private void NewAssignment(object sender, RoutedEventArgs e) => Model.New();
     private void DuplicateAssignment(object sender, RoutedEventArgs e) => Model.Duplicate();
     private void AssignmentSelected(object sender, SelectionChangedEventArgs e)
@@ -122,15 +125,6 @@ public partial class MouseModeView : UserControl
         var copy = new Button { Content = L.T("Copy instructions"), HorizontalAlignment = HorizontalAlignment.Left };
         copy.Click += (_, _) => { try { Clipboard.SetText(text); status.Text = L.T("Copied. Paste it into your AI chat."); } catch (Exception ex) { status.Text = L.T("Could not copy: ") + ex.Message; } };
         footer.Children.Add(copy); grid.Children.Add(footer); window.Content = grid; window.ShowDialog();
-    }
-    private void RefreshApps(object? sender, EventArgs e) { refreshing = true; try { Model.RefreshApplications(); } finally { refreshing = false; } RefreshSelections(); }
-    private void AppSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (!refreshing && Model is not null && (MouseApplication.IsDropDownOpen || MouseApplication.IsKeyboardFocusWithin) && MouseApplication.SelectedItem is Choice<string> choice) Model.Draft.Process = choice.Value;
-    }
-    private void TargetSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (!refreshing && Model is not null && (MouseTarget.IsDropDownOpen || MouseTarget.IsKeyboardFocusWithin) && MouseTarget.SelectedItem is Core.Toy toy) Model.Draft.ToyId = toy.Id;
     }
     internal void ScrollToSettings() => SettingsScroll.ScrollToEnd();
     internal async Task<int> VerifyHarnessAsync()

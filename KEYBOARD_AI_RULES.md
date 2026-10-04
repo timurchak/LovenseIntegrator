@@ -2,6 +2,8 @@
 
 Create JSON for import through Lovense Integrator's Keyboard mode. Return one valid UTF-8 JSON file, or one JSON block without comments if attachments are unavailable. Do not invent fields, events or features.
 
+All categories use the same effect editor. Its Copy saved effect action makes an independent copy of Action, Intensity, DurationSeconds, PulseMs and ToyId only. JSON still stores these fields in each rule: do not add effect references or library IDs. The UI's exact duration field is milliseconds; DurationSeconds in JSON remains seconds.
+
 ## Format
 
 The root object contains exactly `Format: "LovenseIntegrator.Keyboard"`, `Version: 1` and a non-empty `Rules` array. This is a keyboard bundle, not the application's version 3 full profile. Field names are case-sensitive; unknown and duplicate fields are rejected.

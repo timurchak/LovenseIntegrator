@@ -2,6 +2,8 @@
 
 Create one valid UTF-8 JSON file for Import in Mouse mode. Return a file or one JSON block. Do not add JSON comments or invent fields/features.
 
+All categories use the same effect editor. Its Copy saved effect action makes an independent copy of Action, Intensity, DurationSeconds, PulseMs and ToyId only. JSON still stores these fields in each rule: do not add effect references or library IDs. The UI's exact duration field is milliseconds; DurationSeconds in JSON remains seconds.
+
 Root fields: `Format: "LovenseIntegrator.Mouse"`, `Version: 1`, non-empty `Rules`. This is neither a full profile nor a keyboard export. Field names are case-sensitive. Unknown/duplicate fields, invalid values and duplicate IDs reject the entire import.
 
 ## Assignment fields

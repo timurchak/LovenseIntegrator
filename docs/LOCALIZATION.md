@@ -11,3 +11,5 @@ Verification:
 - Console checks cover persistence, corrupt/unknown settings, fallback, placeholder integrity, format parsing and untouched interpolated user content.
 - `Test-UiHarness.ps1` runs the full WPF harness for both `en`/`ru` UI languages under both `en-US`/`ru-RU` numeric cultures. Artifacts live in `artifacts/ui-harness/<language>/<culture>/`.
 - Settings checks use real controls and an isolated settings file next to the test profile. They compare profile bytes and rule snapshots before/after saving and verify paused rules. Never write tests to the user's real settings or profile.
+
+The shared assignment editor and Devices/Manual control navigation use the same catalog. Shared templates are instantiated after the chosen UI language is loaded; numeric culture still inherits from the containing view.

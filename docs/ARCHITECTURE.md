@@ -11,7 +11,9 @@ Installation and updates use Velopack, bootstrapped in `App.Main` before WPF. `U
 | Windows | [WindowsInput.cs](../src/LovenseIntegrator.Desktop/Services/WindowsInput.cs) | Global keyboard/mouse hooks, foreground process/window, emergency hotkey |
 | UI coordination | [MainViewModel.cs](../src/LovenseIntegrator.Desktop/ViewModels/MainViewModel.cs) | Profile, rules, pause, transport, dispatch, log, generation/gate |
 | Visual modes | [KeyboardModeViewModel.cs](../src/LovenseIntegrator.Desktop/ViewModels/KeyboardModeViewModel.cs), KeyboardModeView, MouseModeView | Shared `InputModeViewModel`, layout and assignments; the original filename remains |
-| Other events | MainWindow, EventPickerWindow, RuleEditor, RulePresentation, EffectPreview | Catalog, draft, recipes, description and effect graph |
+| Shared editor | Controls/AssignmentEditorView.xaml(.cs), IAssignmentEditorContext, RuleEditor, EffectPreview | All categories share effect editing, independent effect reuse, preview and fixed actions; modes inject trigger content |
+| Other events | MainWindow, EventPickerWindow, RulePresentation | Event catalog, trigger fields and recipes |
+| Shared styles | Controls/Theme.xaml | Application brushes and control styles, merged by the editor resource dictionary |
 | Screen | ScreenProtocol, ScreenCapture, ScreenModeViewModel, ScreenModeView, ScreenPresetStore | WoW color packets, bounded pixel capture, liveness, semantic event assignments and mode import |
 | Profiles | ProfileStore, KeyboardPresetStore, MousePresetStore | Full profile, strict import bundles, merge by Id |
 | BLE IPC | [IsolatedBleTransport.cs](../src/LovenseIntegrator.Desktop/Transports/IsolatedBleTransport.cs) | Parent transport and BleWorkerHost in one file; named pipe |

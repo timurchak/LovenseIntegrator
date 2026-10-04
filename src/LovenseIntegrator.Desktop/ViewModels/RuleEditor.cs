@@ -88,6 +88,23 @@ public sealed class RuleEditor : INotifyPropertyChanged
     public string PulseText => L.F($"{RulePresentation.Number(PulseSeconds)} s on / off");
     public string TargetText => ToyId.Length == 0 ? L.T("All connected toys") : L.T("Selected toy");
 
+    public bool CanCopyEffect(Rule source) =>
+        (source.Action != ActionKind.RateMapped || SupportsSpeedMapping) &&
+        (!WheelContinuous || source.Action == ActionKind.Vibrate);
+
+    // Effects are copied into an isolated draft. Identity, trigger, scope and timing gates stay intact.
+    public void CopyEffectFrom(Rule source)
+    {
+        if (!CanCopyEffect(source)) return;
+        model.Action = source.Action;
+        model.Intensity = source.Intensity;
+        model.DurationSeconds = source.DurationSeconds;
+        model.PulseMs = source.PulseMs;
+        model.ToyId = source.ToyId;
+        durationSliderMaximum = Math.Max(durationSliderMaximum, model.DurationSeconds);
+        Notify();
+    }
+
     public void ChooseEvent(EventKind value)
     {
         var wasMouse = Option.Category == L.T("Mouse");

@@ -77,6 +77,69 @@ public partial class MainWindow
         {
             await vm.DiscoverAsync(); await Layout();
             Check(vm.ConnectionName == L.T("Demo mode") && vm.Toys.Count == 2, "demo transport only");
+            await Group("Shared assignment editor and effect reuse", async () =>
+            {
+                var original = vm.GetProfile();
+                var source = new Rule { Name = "Shared pulse", Action = ActionKind.Pulse, Intensity = 11, DurationSeconds = 0.12, PulseMs = 515, ToyId = "missing-shared-target" };
+                var speed = new Rule { Name = "Shared speed", Event = EventKind.TypingRateAbove, Action = ActionKind.RateMapped };
+                var sourceBefore = Snapshot(source);
+                vm.SetProfile(new Profile { Rules = [source, speed] });
+                vm.NewRule(); KeyboardMode.Model.New(); KeyboardMode.Model.Select("wasd");
+                MouseMode.Model.New(); MouseMode.Model.Select("buttons"); vm.Screen.New();
+                var editors = new (TabItem Tab, Controls.AssignmentEditorView View, IAssignmentEditorContext Model)[]
+                {
+                    (KeyboardTab, KeyboardMode.AssignmentEditor, KeyboardMode.Model),
+                    (MouseTab, MouseMode.AssignmentEditor, MouseMode.Model),
+                    (ScreenTab, ScreenMode.AssignmentEditor, vm.Screen),
+                    (RulesTab, RuleAssignmentEditor, vm)
+                };
+                var profileBytes = File.ReadAllBytes(ProfileStore.PathName);
+                foreach (var (tab, view, model) in editors)
+                {
+                    Modes.SelectedItem = tab; await Layout(1120, 720);
+                    var before = model.Draft.Copy();
+                    view.EffectSourceSelector.SelectedItem = source;
+                    ((Button)view.Template.FindName("CopyEffectButton", view)).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    await Layout(1120, 720);
+                    var expected = before.Copy(); expected.Action = source.Action; expected.Intensity = source.Intensity;
+                    expected.DurationSeconds = source.DurationSeconds; expected.PulseMs = source.PulseMs; expected.ToyId = source.ToyId;
+                    Check(Snapshot(model.Draft.Copy()) == Snapshot(expected), tab.Name + " copies only effect fields, preserving trigger, identity and scope");
+                    Check(view.EffectGraph.Kind == ActionKind.Pulse && view.EffectGraph.Duration == 0.12 && view.EffectGraph.Pulse == 515, tab.Name + " shared preview preserves exact timing");
+                    Check((string?)view.TargetSelector.SelectedValue == source.ToyId, tab.Name + " unavailable effect target remains selected");
+                    Check(!model.EffectSources.Contains(speed), tab.Name + " incompatible speed effect is excluded");
+                    var buttons = Descendants<Button>(view).Where(b => b.Name is "SaveAssignmentButton" or "TestAssignmentButton" or "DeleteAssignmentButton").ToArray();
+                    Check(buttons.Length == 3 && buttons.All(b => b.TransformToAncestor(content).TransformBounds(new Rect(b.RenderSize)).Bottom <= 720), tab.Name + " common actions stay reachable at minimum size");
+                    Check(Descendants<ScrollViewer>(view).All(scroll => scroll.ScrollableWidth == 0), tab.Name + " shared editor has no horizontal overflow");
+                    ((Button)view.Template.FindName("ShowEffectButton", view)).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    await Layout(1120, 720);
+                    Check(view.EditorScroll.VerticalOffset > 0, tab.Name + " effect shortcut scrolls to the common controls");
+                    Check(Descendants<TextBlock>(view).Any(t => t.Text == model.Summary), tab.Name + " preview summary uses the category's actual trigger selection");
+                }
+                Check(File.ReadAllBytes(ProfileStore.PathName).SequenceEqual(profileBytes) && sourceBefore == Snapshot(vm.Rules[0]) && !vm.Running, "copying effects does not save, mutate the source or enable rules");
+                MouseMode.Model.Draft.WheelContinuous = true;
+                Check(MouseMode.Model.EffectSources.All(r => r.Action == ActionKind.Vibrate), "continuous wheel accepts only vibration effects");
+                var wheelBefore = Snapshot(MouseMode.Model.Draft.Copy()); MouseMode.Model.Draft.CopyEffectFrom(source);
+                Check(wheelBefore == Snapshot(MouseMode.Model.Draft.Copy()), "unsupported copy cannot override continuous wheel behavior");
+                vm.Draft.ChooseEvent(EventKind.TypingRateAbove);
+                Check(vm.EffectSources.Contains(speed), "typing rate supports speed effect reuse");
+                foreach (var tab in new[] { DevicesTab, ManualTab })
+                {
+                    Modes.SelectedItem = tab; await Layout(1120, 720);
+                    Check(!Descendants<Controls.AssignmentEditorView>(content).Any(), tab.Name + " is separate from trigger editing");
+                    var bitmap = new RenderTargetBitmap(1120, 720, 96, 96, PixelFormats.Pbgra32);
+                    var background = new DrawingVisual(); using (var dc = background.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, 1120, 720));
+                    bitmap.Render(background);
+                    bitmap.Render(content); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var file = File.Create(Path.Combine(directory, tab.Name + "-1120.png")); encoder.Save(file);
+                }
+                vm.SelectedToy = vm.Toys[0]; await Layout();
+                Check(ReferenceEquals(ManualTarget.SelectedItem, vm.Toys[0]), "manual tab reflects the selected device");
+                ManualTarget.SelectedItem = vm.Toys[1]; await Layout();
+                Modes.SelectedItem = DevicesTab; await Layout();
+                Check(ReferenceEquals(DeviceList.SelectedItem, vm.Toys[1]), "device selection stays synchronized across separate tabs");
+                vm.SetProfile(original); KeyboardMode.Model.New(); MouseMode.Model.New(); vm.Screen.New();
+                Modes.SelectedItem = RulesTab; await Layout();
+            });
             await Group("Language settings and profile preservation", async () =>
             {
                 var profileBefore = File.ReadAllBytes(ProfileStore.PathName);
@@ -162,14 +225,14 @@ public partial class MainWindow
                     vm.UseRecipe(recipe); await Layout();
                     Check(vm.Draft.Validate() is null && vm.Draft.Copy().Id != recipe.Rule.Id, recipe.Name + " independent draft");
                     RuleName.Text = recipe.Name + " — test"; IntensitySlider.Value = 13;
-                    Click(L.T("Save")); await Layout();
+                    Click(L.T("Save assignment")); await Layout();
                     Check(vm.Rules.Count == count + 1 && vm.SelectedRule?.Intensity == 13 && Snapshot(recipe.Rule) == original, recipe.Name + " save without changing template");
                     var identity = vm.SelectedRule!.Id;
-                    RuleName.Text += " changed"; Click(L.T("Save")); await Layout();
+                    RuleName.Text += " changed"; Click(L.T("Save assignment")); await Layout();
                     Check(vm.Rules.Count == count + 1 && vm.SelectedRule!.Id == identity, "edit replaces same ID");
                 }
                 var removed = vm.Rules[2].Id; var survivors = vm.Rules.Where(r => r.Id != removed).Select(Snapshot).ToArray();
-                vm.SelectedRule = vm.Rules[2]; Click(L.T("Delete")); await Layout();
+                vm.SelectedRule = vm.Rules[2]; Click(L.T("Delete assignment")); await Layout();
                 Check(vm.Rules.Select(Snapshot).SequenceEqual(survivors), "deleting middle row preserves every other rule");
                 var persisted = ProfileStore.Load();
                 Check(persisted.Rules.Select(Snapshot).SequenceEqual(survivors), "persisted deletion keeps same IDs and settings");
@@ -218,26 +281,26 @@ public partial class MainWindow
                 foreach (var invalid in new[] { "abc", "", "NaN", "Infinity", "-1", "0" })
                 {
                     ThresholdInput.Text = invalid; var before = vm.Rules.Count;
-                    Click(L.T("Save")); await Layout(); Check(vm.Rules.Count == before, "cannot save threshold " + invalid);
+                    Click(L.T("Save assignment")); await Layout(); Check(vm.Rules.Count == before, "cannot save threshold " + invalid);
                 }
                 ThresholdInput.Text = (0.85).ToString(CultureInfo.CurrentCulture); await Layout();
                 Check(!Validation.GetHasError(ThresholdInput) && vm.Draft.Threshold == 850, "fractional seconds use selected language");
                 ThresholdInput.Text = "invalid"; vm.Draft.ChooseEvent(EventKind.KeyDown); await Layout();
-                var count = vm.Rules.Count; Click(L.T("Save")); await Layout();
+                var count = vm.Rules.Count; Click(L.T("Save assignment")); await Layout();
                 Check(vm.Rules.Count == count + 1, "irrelevant hidden invalid field does not block valid rule");
-                RuleName.Text = "   "; Click(L.T("Save")); await Layout();
+                RuleName.Text = "   "; Click(L.T("Save assignment")); await Layout();
                 Check(vm.SelectedRule!.Name != "   " && vm.Journal[0].Contains("name"), "blank name rejected");
                 vm.SelectedRule = vm.Rules.First(); await Layout();
                 Check(!HasErrors(Editor) && RuleName.Text == vm.SelectedRule!.Name, "switching draft clears stale validation");
                 AdvancedSettings.IsExpanded = true; await Layout();
-                var duration = Descendants<TextBox>(AdvancedSettings).Single(b => b.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "Draft.DurationSeconds");
-                duration.Text = (73.5).ToString(CultureInfo.CurrentCulture); await Layout();
+                var duration = Descendants<TextBox>(Editor).Single(b => b.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "Draft.DurationMilliseconds");
+                duration.Text = (73500).ToString(CultureInfo.CurrentCulture); await Layout();
                 Check(vm.Draft.DurationSeconds == 73.5 && vm.Draft.DurationSliderMaximum >= 73.5, "exact long fractional duration retained");
                 var pulse = Descendants<Slider>(PulseSettings).Single();
                 vm.Draft.Action = ActionKind.Pulse; pulse.Value = 0.35; await Layout();
                 Check(vm.Draft.PulseMs == 350, "pulse interval slider uses milliseconds without drift");
-                var cooldown = Descendants<TextBox>(AdvancedSettings).Single(b => b.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "Draft.CooldownSeconds");
-                cooldown.Text = (2.75).ToString(CultureInfo.CurrentCulture); await Layout();
+                var cooldown = Descendants<TextBox>(Editor).Single(b => b.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "Draft.CooldownMs");
+                cooldown.Text = (2750).ToString(CultureInfo.CurrentCulture); await Layout();
                 Check(vm.Draft.CooldownMs == 2750, "cooldown fraction retained");
             });
             await Group("Profile roundtrip and empty rule list", async () =>
@@ -248,9 +311,9 @@ public partial class MainWindow
                 await vm.ImportProfileAsync(ProfileStore.Load(path)); await Layout();
                 Check(!vm.Running && vm.Rules.Select(Snapshot).SequenceEqual(profile.Rules.Select(Snapshot)), "all events roundtrip and import leaves rules paused");
                 Check(ProfileStore.Load().Rules.Select(Snapshot).SequenceEqual(profile.Rules.Select(Snapshot)), "import persisted every rule");
-                while (vm.Rules.Count > 0) { vm.SelectedRule = vm.Rules.Last(); Click(L.T("Delete")); }
+                while (vm.Rules.Count > 0) { vm.SelectedRule = vm.Rules.Last(); Click(L.T("Delete assignment")); }
                 await Layout(); Check(vm.SelectedRule is null && ProfileStore.Load().Rules.Count == 0 && !HasErrors(Editor), "empty rule list remains editable and persists");
-                Click(L.T("+ New rule")); RuleName.Text = "After deleting all"; Click(L.T("Save")); await Layout();
+                Click(L.T("+ Assignment")); RuleName.Text = "After deleting all"; Click(L.T("Save assignment")); await Layout();
                 Check(vm.Rules.Count == 1 && vm.Rules[0].Name == RuleName.Text, "create first rule again");
             });
             await Group("Short keyboard feedback presets and persistence", async () =>
@@ -266,7 +329,7 @@ public partial class MainWindow
                 }
                 DurationSlider.Value = 0.15; await Layout();
                 Check(vm.Draft.DurationSeconds == 0.15, "duration slider retains 150 ms");
-                Click(L.T("Save")); await Layout(); var savedId = vm.SelectedRule!.Id;
+                Click(L.T("Save assignment")); await Layout(); var savedId = vm.SelectedRule!.Id;
                 Check(ProfileStore.Load().Rules.Single(r => r.Id == savedId).DurationSeconds == 0.15, "subsecond duration persisted exactly");
                 await vm.TestRuleAsync();
                 Check(vm.Journal[0].Contains(L.T("150 ms")) && vm.Journal[0].Contains("[demo]"), "test feedback uses demo and logs milliseconds");
@@ -286,7 +349,7 @@ public partial class MainWindow
                 foreach (var (width, height) in new[] { (1120, 720), (1360, 900) })
                 {
                     await Layout(width, height);
-                    foreach (var caption in new[] { L.T("Save"), L.T("Test action"), L.T("Delete"), L.T("STOP ALL") })
+                    foreach (var caption in new[] { L.T("Save assignment"), L.T("Test effect"), L.T("Delete assignment"), L.T("STOP ALL") })
                     {
                         var button = Button(caption); var bounds = button.TransformToAncestor(content).TransformBounds(new Rect(button.RenderSize));
                         Check(button.ActualWidth > 0 && bounds.Left >= 0 && bounds.Top >= 0 && bounds.Right <= width && bounds.Bottom <= height, caption + " reachable at " + width);
@@ -426,7 +489,7 @@ public partial class MainWindow
                 Check(!vm.Screen.Monitoring && !vm.Running, "Screen startup does not capture or enable rules");
                 Check(vm.Screen.Events.Count == 13 && vm.Screen.Events.All(e => e.Value != "wow.test"), "Screen semantic catalog excludes diagnostic test");
                 var eventSelector = (ComboBox)ScreenMode.FindName("EventSelector");
-                var save = (Button)ScreenMode.FindName("SaveAssignmentButton");
+                var save = ScreenMode.AssignmentEditor.SaveAssignmentButton;
                 vm.Screen.New(); vm.Screen.Draft.Name = "Harness Screen assignment";
                 eventSelector.SelectedValue = "wow.player.damage"; await Layout();
                 Check(vm.Screen.Draft.ScreenEventId == "wow.player.damage" && vm.Screen.Draft.ScreenHelp.Length > 0, "Screen localized selector stores stable semantic ID");
@@ -487,7 +550,7 @@ public partial class MainWindow
                 foreach (var (width, height) in new[] { (1360, 900), (1120, 720) })
                 {
                     await Layout(width, height);
-                    var scroll = Descendants<ScrollViewer>(ScreenMode).First(); scroll.ScrollToTop(); await Layout(width, height);
+                    var scroll = ScreenMode.AssignmentEditor.EditorScroll; scroll.ScrollToTop(); await Layout(width, height);
                     var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
                     var bg = new DrawingVisual(); using (var dc = bg.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, width, height));
                     bitmap.Render(bg); bitmap.Render(content); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));

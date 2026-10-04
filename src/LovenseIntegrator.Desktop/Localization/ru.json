@@ -447,5 +447,16 @@
   "The player gained a level.": "Персонаж получил новый уровень.",
   "A diagnostic addon signal. It is shown in the preview and never triggers an action.": "Диагностический сигнал аддона. Показывается в предпросмотре и никогда не запускает эффект.",
   "Saved assignments": "Сохранённые назначения",
-  "Copy AI instructions": "Копировать инструкции для ИИ"
+  "Copy AI instructions": "Копировать инструкции для ИИ",
+  "Choose a trigger. Attach an effect.": "Выберите триггер. Назначьте эффект.",
+  "01  Trigger": "01  Триггер",
+  "02  Effect": "02  Эффект",
+  "Signal setup and recent events": "Настройка сигнала и последние события",
+  "  Devices  ": "  Устройства  ",
+  "  Manual control  ": "  Ручное управление  ",
+  "Copy saved effect": "Скопировать сохранённый эффект",
+  "Copies the effect and toy target. Your trigger and conditions stay unchanged.": "Копируются эффект и устройство. Триггер и условия остаются прежними.",
+  "Apply effect": "Применить эффект",
+  "Edit effect ↓": "Настроить эффект ↓",
+  "Key codes": "Коды клавиш"
 }

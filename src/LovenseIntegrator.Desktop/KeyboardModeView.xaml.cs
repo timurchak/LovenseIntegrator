@@ -12,6 +12,10 @@ namespace LovenseIntegrator.Desktop;
 
 public partial class KeyboardModeView : UserControl
 {
+    private ComboBox KeyboardApplication => AssignmentEditor.ApplicationSelector;
+    private ComboBox KeyboardTarget => AssignmentEditor.TargetSelector;
+    private Controls.EffectPreview KeyboardGraph => AssignmentEditor.EffectGraph;
+    private ScrollViewer SettingsScroll => AssignmentEditor.EditorScroll;
     internal InputModeViewModel Model { get; private set; } = null!;
     private readonly List<(Button Button, KeyboardKey Key, TextBlock Marker)> keys = [];
     private bool refreshing;
@@ -57,7 +61,6 @@ public partial class KeyboardModeView : UserControl
         finally { refreshing = false; }
     }
     private void SelectKeys(object sender, RoutedEventArgs e) => Model.Select((string)((Button)sender).Tag);
-    private void ChoosePreset(object sender, RoutedEventArgs e) => Model.Preset((string)((Button)sender).Tag);
     private void NewAssignment(object sender, RoutedEventArgs e) => Model.New();
     private void DuplicateAssignment(object sender, RoutedEventArgs e) => Model.Duplicate();
     private void AssignmentSelected(object sender, SelectionChangedEventArgs e)
@@ -110,15 +113,6 @@ public partial class KeyboardModeView : UserControl
         copy.Click += (_, _) => { try { Clipboard.SetText(text); status.Text = L.T("Copied. Paste it into your AI chat."); } catch (Exception ex) { status.Text = L.T("Could not copy: ") + ex.Message; } };
         footer.Children.Add(copy); grid.Children.Add(footer); window.Content = grid; window.ShowDialog();
     }
-    private void RefreshApps(object? sender, EventArgs e) { refreshing = true; try { Model.RefreshApplications(); } finally { refreshing = false; } RefreshSelections(); }
-    private void AppSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (!refreshing && Model is not null && (KeyboardApplication.IsDropDownOpen || KeyboardApplication.IsKeyboardFocusWithin) && KeyboardApplication.SelectedItem is Choice<string> choice) Model.Draft.Process = choice.Value;
-    }
-    private void TargetSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (!refreshing && Model is not null && (KeyboardTarget.IsDropDownOpen || KeyboardTarget.IsKeyboardFocusWithin) && KeyboardTarget.SelectedItem is Core.Toy toy) Model.Draft.ToyId = toy.Id;
-    }
     internal void ScrollToSettings() => SettingsScroll.ScrollToEnd();
     internal async Task<int> VerifyHarnessAsync()
     {
@@ -160,7 +154,7 @@ public partial class KeyboardModeView : UserControl
         Model.Select("arrows"); Check(Model.SelectionCount == 4 && Model.IsSelected("Left"), "arrow preset");
         Model.Select("none"); KeyClick("Return"); await Settle();
         Check(keys.Count(k => k.Key.Id == "Return" && k.Button.Background.ToString() == "#FF6D50D7") == 2, "both Enter positions share selection");
-        Model.Select("wasd"); ChoosePreset(new Button { Tag = "typewriter" }, new());
+        Model.Select("wasd"); Model.Preset("typewriter");
         Check(Model.Draft.DurationSeconds == 0.12 && Model.Draft.Intensity == 8 && Model.SelectionCount == 4, "typewriter preset keeps key selection");
         Model.Draft.Name = "WASD in game"; Model.Draft.Process = "harness-game"; Model.Draft.WindowTitleContains = "Raid";
         Model.Draft.Intensity = 14; Model.Draft.ToyId = "missing-keyboard-toy";

@@ -2,6 +2,8 @@
 
 Generate a JSON bundle with Format `LovenseIntegrator.Screen`, Version `1`, and a nonempty Rules array. This is not a full profile or a keyboard/mouse bundle. Import merges by stable Id; preserve an Id when editing, generate a new UUID for an independent assignment. Never include real device IDs in examples.
 
+All categories use the same effect editor. Its Copy saved effect action makes an independent copy of Action, Intensity, DurationSeconds, PulseMs and ToyId only. JSON still stores these fields in each rule: do not add effect references or library IDs. The UI's exact duration field is milliseconds; DurationSeconds in JSON remains seconds.
+
 Every rule must include: Id, Name, Enabled, Event (`ScreenEvent`), ScreenEventId, Action (`Vibrate`, `Pulse` or `Stop`), Intensity (0–20), DurationSeconds (0.1–300 seconds), PulseMs (150–10000 milliseconds), CooldownMs (100–3600000 milliseconds), Priority (integer; higher wins), ToyId (empty = all connected), Process (`Wow` or empty) and WindowTitleContains (empty = any title). Set Keys and ExcludedKeys empty, KeyboardLayer/MouseLayer/WheelContinuous false if included. Do not use RateMapped. Unknown and duplicate fields are rejected.
 
 Supported ScreenEventId values:
