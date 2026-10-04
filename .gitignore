@@ -1,0 +1,13 @@
+.tools/
+**/bin/
+**/obj/
+dist/
+artifacts/
+*.user
+.vs/
+native/*.dll
+*.dmp
+*.log
+.env
+.env.*
+!.env.example

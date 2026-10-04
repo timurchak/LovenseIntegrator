@@ -1,0 +1,46 @@
+{
+  "Format": "LovenseIntegrator.Mouse",
+  "Version": 1,
+  "Rules": [
+    {
+      "Id": "79ab5b8e-96da-4a36-ac83-433b38676120",
+      "Name": "Five buttons — fast feedback",
+      "Enabled": true,
+      "MouseLayer": true,
+      "Event": "MouseDown",
+      "Keys": "Left,Right,Middle,X1,X2",
+      "ExcludedKeys": "",
+      "Action": "Vibrate",
+      "Intensity": 5,
+      "DurationSeconds": 0.1,
+      "CooldownMs": 0,
+      "PulseMs": 250,
+      "WheelContinuous": false,
+      "WheelIdleMs": 150,
+      "Process": "",
+      "WindowTitleContains": "",
+      "ToyId": "",
+      "Priority": 0
+    },
+    {
+      "Id": "3bc47a25-fcd6-4d23-95b0-949bc08053ea",
+      "Name": "Wheel — vibration while scrolling",
+      "Enabled": true,
+      "MouseLayer": true,
+      "Event": "MouseDown",
+      "Keys": "Up,Down",
+      "ExcludedKeys": "",
+      "Action": "Vibrate",
+      "Intensity": 5,
+      "DurationSeconds": 0.1,
+      "CooldownMs": 0,
+      "PulseMs": 250,
+      "WheelContinuous": true,
+      "WheelIdleMs": 150,
+      "Process": "",
+      "WindowTitleContains": "",
+      "ToyId": "",
+      "Priority": 0
+    }
+  ]
+}

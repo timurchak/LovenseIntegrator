@@ -1,0 +1,42 @@
+{
+  "Format": "LovenseIntegrator.Keyboard",
+  "Version": 1,
+  "Rules": [
+    {
+      "Id": "3056dd48-a313-41d3-862a-77b0b829d52a",
+      "Name": "General feedback without Esc and Ctrl",
+      "Enabled": true,
+      "Event": "KeyDown",
+      "KeyboardLayer": true,
+      "Keys": "",
+      "ExcludedKeys": "Escape,LeftCtrl,RightCtrl",
+      "Action": "Vibrate",
+      "Intensity": 5,
+      "DurationSeconds": 0.15,
+      "CooldownMs": 200,
+      "PulseMs": 250,
+      "Process": "",
+      "WindowTitleContains": "",
+      "ToyId": "",
+      "Priority": 0
+    },
+    {
+      "Id": "657e5a92-533e-4991-83eb-5a305d580d06",
+      "Name": "Stronger WASD in Notepad",
+      "Enabled": true,
+      "Event": "KeyDown",
+      "KeyboardLayer": true,
+      "Keys": "W,A,S,D",
+      "ExcludedKeys": "",
+      "Action": "Vibrate",
+      "Intensity": 8,
+      "DurationSeconds": 0.15,
+      "CooldownMs": 200,
+      "PulseMs": 250,
+      "Process": "notepad",
+      "WindowTitleContains": "",
+      "ToyId": "",
+      "Priority": 0
+    }
+  ]
+}

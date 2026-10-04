@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LovenseIntegrator.Core/LovenseIntegrator.Core.csproj" />
+    <Project Path="src/LovenseIntegrator.Desktop/LovenseIntegrator.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LovenseIntegrator.Tests/LovenseIntegrator.Tests.csproj" />
+  </Folder>
+</Solution>
