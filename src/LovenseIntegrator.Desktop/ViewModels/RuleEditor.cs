@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.ComponentModel;
 using LovenseIntegrator.Core;
 
@@ -49,7 +50,7 @@ public sealed class RuleEditor : INotifyPropertyChanged
     public double PulseSeconds { get => PulseMs / 1000.0; set { PulseMs = ToMilliseconds(value); } }
     private static int ToMilliseconds(double value)
     {
-        if (!double.IsFinite(value) || value < 0 || value > int.MaxValue / 1000.0) throw new ArgumentException("Enter a valid duration in seconds.");
+        if (!double.IsFinite(value) || value < 0 || value > int.MaxValue / 1000.0) throw new ArgumentException(L.T("Enter a valid duration in seconds."));
         return checked((int)Math.Round(value * 1000));
     }
     public EventOption Option => RulePresentation.Event(Event);
@@ -57,8 +58,8 @@ public sealed class RuleEditor : INotifyPropertyChanged
     public string EventCategory => Option.Category;
     public string EventHelp => Option.Help;
     public string Summary => RulePresentation.Describe(model);
-    public bool ShowKeyboard => Option.UsesKeys && Option.Category == "Keyboard";
-    public bool ShowMouse => Option.UsesKeys && Option.Category == "Mouse" && Event != EventKind.MouseWheel;
+    public bool ShowKeyboard => Option.UsesKeys && Option.Category == L.T("Keyboard");
+    public bool ShowMouse => Option.UsesKeys && Option.Category == L.T("Mouse") && Event != EventKind.MouseWheel;
     public bool ShowWheel => Event == EventKind.MouseWheel;
     public bool ShowThreshold => Option.UsesThreshold;
     public bool ShowWindow => Option.UsesWindow;
@@ -68,32 +69,32 @@ public sealed class RuleEditor : INotifyPropertyChanged
     public bool ShowMapping => Action == ActionKind.RateMapped;
     public bool SupportsSpeedMapping => Event is EventKind.TypingRateAbove or EventKind.TypingRateBelow;
     public bool ShowKeyDetails => ShowKeyboard;
-    public string[] KeyCaps => Keys.Length == 0 ? ["Any key"] : model.KeyList().Select(RulePresentation.KeyName).ToArray();
+    public string[] KeyCaps => Keys.Length == 0 ? [L.T("Any key")] : model.KeyList().Select(RulePresentation.KeyName).ToArray();
     public string ThresholdLabel => Event switch
     {
-        EventKind.KeyHeld or EventKind.MouseHeld => "Hold for at least · seconds",
-        EventKind.KeyReleasedAfterHold => "Release after · seconds",
-        EventKind.DoublePress or EventKind.TriplePress or EventKind.MouseDoubleClick => "Count presses over · seconds",
-        EventKind.PressCount => "Number of presses", EventKind.CleanTypingStreak => "Consecutive typing keys",
-        EventKind.TypingRateAbove or EventKind.TypingRateBelow => "Speed · presses per second",
-        EventKind.Timer => "Repeat every · seconds", _ => "Minimum break · seconds"
+        EventKind.KeyHeld or EventKind.MouseHeld => L.T("Hold for at least · seconds"),
+        EventKind.KeyReleasedAfterHold => L.T("Release after · seconds"),
+        EventKind.DoublePress or EventKind.TriplePress or EventKind.MouseDoubleClick => L.T("Count presses over · seconds"),
+        EventKind.PressCount => L.T("Number of presses"), EventKind.CleanTypingStreak => L.T("Consecutive typing keys"),
+        EventKind.TypingRateAbove or EventKind.TypingRateBelow => L.T("Speed · presses per second"),
+        EventKind.Timer => L.T("Repeat every · seconds"), _ => L.T("Minimum break · seconds")
     };
     public string IntensityText => $"{Intensity}/20";
     public string DurationText => RulePresentation.Duration(DurationSeconds);
-    public string PulseText => $"{RulePresentation.Number(PulseSeconds)} s on / off";
-    public string TargetText => ToyId.Length == 0 ? "All connected toys" : "Selected toy";
+    public string PulseText => L.F($"{RulePresentation.Number(PulseSeconds)} s on / off");
+    public string TargetText => ToyId.Length == 0 ? L.T("All connected toys") : L.T("Selected toy");
 
     public void ChooseEvent(EventKind value)
     {
-        var wasMouse = Option.Category == "Mouse";
+        var wasMouse = Option.Category == L.T("Mouse");
         model.Event = value;
         if (model.Action == ActionKind.RateMapped && !SupportsSpeedMapping) model.Action = ActionKind.Vibrate;
-        if (Option.Category == "Mouse" && !wasMouse) model.Keys = value == EventKind.MouseWheel ? "" : "Left";
-        else if (Option.Category == "Keyboard" && wasMouse) model.Keys = "Space";
+        if (Option.Category == L.T("Mouse") && !wasMouse) model.Keys = value == EventKind.MouseWheel ? "" : "Left";
+        else if (Option.Category == L.T("Keyboard") && wasMouse) model.Keys = "Space";
         if (!Option.UsesKeys) model.Keys = "";
         if (value == EventKind.MouseWheel && model.Keys is not ("" or "Up" or "Down")) model.Keys = "";
-        if (Option.Category == "Mouse" && value != EventKind.MouseWheel && model.Keys is not ("" or "Left" or "Right" or "Middle" or "X1" or "X2")) model.Keys = "Left";
-        if (Option.Category == "Keyboard" && value is not (EventKind.Chord or EventKind.Sequence) && model.KeyList().Length > 1) model.Keys = "Space";
+        if (Option.Category == L.T("Mouse") && value != EventKind.MouseWheel && model.Keys is not ("" or "Left" or "Right" or "Middle" or "X1" or "X2")) model.Keys = "Left";
+        if (Option.Category == L.T("Keyboard") && value is not (EventKind.Chord or EventKind.Sequence) && model.KeyList().Length > 1) model.Keys = "Space";
         if (value == EventKind.Chord && model.KeyList().Length < 2) model.Keys = "LeftCtrl+Space";
         if (value == EventKind.Sequence && model.KeyList().Length < 2) model.Keys = "A,B,C";
         model.Threshold = value switch

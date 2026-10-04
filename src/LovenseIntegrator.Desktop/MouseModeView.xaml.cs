@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -32,11 +33,11 @@ public partial class MouseModeView : UserControl
             button.Click += (_, _) => Model.Toggle(id);
             Canvas.SetLeft(button, x); Canvas.SetTop(button, y); MouseCanvas.Children.Add(button); keys.Add((button, id, marker));
         }
-        Add("Left", "1\nLeft", 206, 22, 63, 95); Add("Right", "2\nRight", 308, 22, 63, 95);
+        Add("Left", L.T("1\nLeft"), 206, 22, 63, 95); Add("Right", L.T("2\nRight"), 308, 22, 63, 95);
         Add("Middle", "3", 275, 57, 32, 56);
         Add("X1", "4 · X1", 128, 117, 70, 42); Add("X2", "5 · X2", 128, 164, 70, 42);
-        Add("Up", "↑  Scroll up", 427, 50, 170, 48); Add("Down", "↓  Scroll down", 427, 108, 170, 48);
-        var caption = new TextBlock { Text = "3 — wheel click", Foreground = new SolidColorBrush(Color.FromRgb(110, 114, 139)), FontSize = 11 };
+        Add("Up", L.T("↑  Scroll up"), 427, 50, 170, 48); Add("Down", L.T("↓  Scroll down"), 427, 108, 170, 48);
+        var caption = new TextBlock { Text = L.T("3 — wheel click"), Foreground = new SolidColorBrush(Color.FromRgb(110, 114, 139)), FontSize = 11 };
         Canvas.SetLeft(caption, 231); Canvas.SetTop(caption, 178); MouseCanvas.Children.Add(caption);
     }
     public void Initialize(MainViewModel owner)
@@ -88,10 +89,10 @@ public partial class MouseModeView : UserControl
     private void DeleteAssignment(object sender, RoutedEventArgs e) => Model.Delete();
     private async void ImportMouse(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Filter = "Mouse assignments (*.json)|*.json", Title = "Import mouse assignments — add / update by Id" };
+        var dialog = new OpenFileDialog { Filter = "Mouse assignments (*.json)|*.json", Title = L.T("Import mouse assignments — add / update by Id") };
         if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
         try { await Model.ImportFileAsync(dialog.FileName); }
-        catch (Exception ex) { Model.Report($"Mouse import failed: {ex.Message}"); }
+        catch (Exception ex) { Model.Report(L.F($"Mouse import failed: {ex.Message}")); }
     }
     private void ExportMouse(object sender, RoutedEventArgs e)
     {
@@ -103,23 +104,23 @@ public partial class MouseModeView : UserControl
     private void ExportSelectedMouse(object sender, RoutedEventArgs e) => ExportMouseFile(true);
     private void ExportMouseFile(bool selectedOnly)
     {
-        if (selectedOnly && Model.SelectedId is null) { Model.Report("Select a saved assignment first."); return; }
+        if (selectedOnly && Model.SelectedId is null) { Model.Report(L.T("Select a saved assignment first.")); return; }
         var dialog = new SaveFileDialog { Filter = "Mouse assignments (*.json)|*.json", FileName = selectedOnly ? "mouse-assignment.json" : "mouse-assignments.json" };
         if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
         try { Model.ExportFile(dialog.FileName, selectedOnly); }
-        catch (Exception ex) { Model.Report($"Mouse export failed: {ex.Message}"); }
+        catch (Exception ex) { Model.Report(L.F($"Mouse export failed: {ex.Message}")); }
     }
     private void ShowAiInstructions(object sender, RoutedEventArgs e)
     {
         var text = MouseAiInstructions.Read();
-        var window = new Window { Owner = Window.GetWindow(this), Title = "AI instructions — mouse assignments", Width = 800, Height = 680, MinWidth = 560, MinHeight = 400, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Brushes.White };
+        var window = new Window { Owner = Window.GetWindow(this), Title = L.T("AI instructions — mouse assignments"), Width = 800, Height = 680, MinWidth = 560, MinHeight = 400, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Brushes.White };
         var grid = new Grid { Margin = new Thickness(18) }; grid.RowDefinitions.Add(new RowDefinition()); grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var editor = new TextBox { Text = text, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontFamily = new FontFamily("Consolas"), FontSize = 12, Padding = new Thickness(10) };
         grid.Children.Add(editor);
         var footer = new StackPanel { Margin = new Thickness(0, 12, 0, 0) }; Grid.SetRow(footer, 1);
-        var status = new TextBlock { Text = "Give these instructions to an AI along with the effects you want.", Margin = new Thickness(0, 0, 0, 8) }; footer.Children.Add(status);
-        var copy = new Button { Content = "Copy instructions", HorizontalAlignment = HorizontalAlignment.Left };
-        copy.Click += (_, _) => { try { Clipboard.SetText(text); status.Text = "Copied. Paste it into your AI chat."; } catch (Exception ex) { status.Text = "Could not copy: " + ex.Message; } };
+        var status = new TextBlock { Text = L.T("Give these instructions to an AI along with the effects you want."), Margin = new Thickness(0, 0, 0, 8) }; footer.Children.Add(status);
+        var copy = new Button { Content = L.T("Copy instructions"), HorizontalAlignment = HorizontalAlignment.Left };
+        copy.Click += (_, _) => { try { Clipboard.SetText(text); status.Text = L.T("Copied. Paste it into your AI chat."); } catch (Exception ex) { status.Text = L.T("Could not copy: ") + ex.Message; } };
         footer.Children.Add(copy); grid.Children.Add(footer); window.Content = grid; window.ShowDialog();
     }
     private void RefreshApps(object? sender, EventArgs e) { refreshing = true; try { Model.RefreshApplications(); } finally { refreshing = false; } RefreshSelections(); }

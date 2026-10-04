@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>
  <ItemGroup>
+  <Compile Include="../../src/LovenseIntegrator.Desktop/Localization/L.cs" Link="L.cs"/>
+  <EmbeddedResource Include="../../src/LovenseIntegrator.Desktop/Localization/ru.json" LogicalName="Localization.ru.json" />
   <Compile Include="../../src/LovenseIntegrator.Desktop/Services/UpdateService.cs" Link="UpdateService.cs"/>
   <Compile Include="../../src/LovenseIntegrator.Desktop/Services/BleSdkInstaller.cs" Link="BleSdkInstaller.cs"/>
   <ProjectReference Include="../../src/LovenseIntegrator.Core/LovenseIntegrator.Core.csproj"/>

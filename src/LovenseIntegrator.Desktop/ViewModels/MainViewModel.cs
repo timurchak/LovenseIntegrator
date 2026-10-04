@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -23,9 +24,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     private readonly Func<int, string, IToyTransport> createTransport;
     private long generation;
     private bool running, busy, sending;
-    private string status = "Demo mode. No commands are sent to real toys.";
-    private string process = "", apiUrl = "", connectionName = "Demo mode";
-    private string hotkeyStatus = "Ctrl + Alt + F12 — stop all, even in another application";
+    private string status = L.T("Demo mode. No commands are sent to real toys.");
+    private string process = "", apiUrl = "", connectionName = L.T("Demo mode");
+    private string hotkeyStatus = L.T("Ctrl + Alt + F12 — stop all, even in another application");
     private Rule? selected;
     private RuleEditor draft = new(new Rule());
     private string lastDraftToyId = "";
@@ -37,13 +38,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     public ObservableCollection<Rule> Rules { get; } = [];
     public IReadOnlyList<Rule> AutomationRules => Rules.Where(r => !r.KeyboardLayer && !r.MouseLayer).ToArray();
     public ObservableCollection<Toy> Toys { get; } = [];
-    public IReadOnlyList<Toy> Targets => new[] { new Toy("", "All connected", true) }.Concat(Toys)
-        .Concat(Draft.ToyId.Length > 0 && !Toys.Any(t => t.Id == Draft.ToyId) ? [new Toy(Draft.ToyId, "Unavailable toy from profile", false)] : Array.Empty<Toy>()).ToArray();
+    public IReadOnlyList<Toy> Targets => new[] { new Toy("", L.T("All connected"), true) }.Concat(Toys)
+        .Concat(Draft.ToyId.Length > 0 && !Toys.Any(t => t.Id == Draft.ToyId) ? [new Toy(Draft.ToyId, L.T("Unavailable toy from profile"), false)] : Array.Empty<Toy>()).ToArray();
     public ObservableCollection<string> Journal { get; } = [];
     public IReadOnlyList<RuleRecipe> Recipes => RulePresentation.Recipes;
-    public IReadOnlyList<Choice<string>> MouseButtons { get; } = [new("", "Any button"), new("Left", "Left"), new("Right", "Right"), new("Middle", "Middle"), new("X1", "Side 1"), new("X2", "Side 2")];
-    public IReadOnlyList<Choice<string>> WheelDirections { get; } = [new("", "Either direction"), new("Up", "Up"), new("Down", "Down")];
-    public string[] Transports { get; } = ["Demo mode", "Bluetooth (direct connection)", "Lovense Remote (Local API)"];
+    public IReadOnlyList<Choice<string>> MouseButtons { get; } = [new("", L.T("Any button")), new("Left", L.T("Left")), new("Right", L.T("Right")), new("Middle", L.T("Middle")), new("X1", L.T("Side 1")), new("X2", L.T("Side 2"))];
+    public IReadOnlyList<Choice<string>> WheelDirections { get; } = [new("", L.T("Either direction")), new("Up", L.T("Up")), new("Down", L.T("Down"))];
+    public string[] Transports { get; } = [L.T("Demo mode"), L.T("Bluetooth (direct connection)"), L.T("Lovense Remote (Local API)")];
     public int TransportIndex { get => transportIndex; set { transportIndex = value; Changed(); } }
     public Toy? SelectedToy { get; set; }
     public int ManualIntensity { get => manualIntensity; set { manualIntensity = value; Changed(); } }
@@ -55,9 +56,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     public string ConnectionName { get => connectionName; private set { connectionName = value; Changed(); } }
     public string HotkeyStatus { get => hotkeyStatus; set { hotkeyStatus = value; Changed(); } }
     public string ApiUrl { get => apiUrl; set { apiUrl = value; Changed(); } }
-    public string RunLabel => Running ? "Pause" : "Enable rules";
+    public string RunLabel => Running ? L.T("Pause") : L.T("Enable rules");
     public bool ObserveOnly { get => observeOnly; set { observeOnly = value; Changed(); Changed(nameof(RunStatus)); } }
-    public string RunStatus => Running ? ObserveOnly ? "Observation only" : "Monitoring events" : "Rules paused";
+    public string RunStatus => Running ? ObserveOnly ? L.T("Observation only") : L.T("Monitoring events") : L.T("Rules paused");
     public Rule? SelectedRule { get => selected; set { selected = value; Changed(); Draft = new(value ?? new Rule()); } }
     public RuleEditor Draft
     {
@@ -72,7 +73,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     }
     public IReadOnlyList<EventOption> Events => RulePresentation.Events;
     public IReadOnlyList<Choice<ActionKind>> Actions { get; } =
-    [new(ActionKind.Vibrate, "Vibration"), new(ActionKind.Pulse, "Pulse"), new(ActionKind.RateMapped, "Intensity from typing speed"), new(ActionKind.Stop, "Stop")];
+    [new(ActionKind.Vibrate, L.T("Vibration")), new(ActionKind.Pulse, L.T("Pulse")), new(ActionKind.RateMapped, L.T("Intensity from typing speed")), new(ActionKind.Stop, L.T("Stop"))];
     public string EventHelp => Draft.EventHelp;
     public MainViewModel(int initialTransport = 0, Func<int, string, IToyTransport>? transportFactory = null)
     {
@@ -80,7 +81,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         Rules.CollectionChanged += (_, _) => Changed(nameof(AutomationRules));
         TransportIndex = initialTransport;
         try { SetProfile(ProfileStore.Load()); }
-        catch (Exception ex) { canSave = false; SetProfile(ProfileStore.Defaults()); Log($"Could not read the profile: {ex.Message}. Original file preserved; autosave is disabled."); }
+        catch (Exception ex) { canSave = false; SetProfile(ProfileStore.Defaults()); Log(L.F($"Could not read the profile: {ex.Message}. Original file preserved; autosave is disabled.")); }
         input.Received += e =>
         {
             // Keep the OS hook short. Evaluate outside the native callback.
@@ -127,7 +128,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         }
         if (Draft.Process.Length > 0) names.Add(Draft.Process);
         // Replace as one list to keep the selected process stable while refreshing.
-        applicationChoices = new[] { new Choice<string>("", "Any application") }.Concat(names.OrderBy(n => n).Select(n => new Choice<string>(n, n))).ToArray();
+        applicationChoices = new[] { new Choice<string>("", L.T("Any application")) }.Concat(names.OrderBy(n => n).Select(n => new Choice<string>(n, n))).ToArray();
         Changed(nameof(ApplicationChoices));
     }
     private IReadOnlyList<Choice<string>> applicationChoices = [];
@@ -153,7 +154,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         var index = SelectedRule is null ? -1 : Rules.IndexOf(SelectedRule);
         if (index < 0) Rules.Add(saved); else Rules[index] = saved;
         SelectedRule = saved; engine.Reset(Environment.TickCount64); Persist();
-        Log($"Rule «{saved.Name}» saved.");
+        Log(L.F($"Rule «{saved.Name}» saved."));
     }
     public void DeleteRule()
     {
@@ -166,25 +167,25 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         var index = Rules.ToList().FindIndex(r => r.Id == rule.Id);
         if (index < 0) Rules.Add(rule.Copy()); else Rules[index] = rule.Copy();
         if (SelectedRule?.Id == rule.Id) SelectedRule = AutomationRules.FirstOrDefault();
-        engine.Reset(Environment.TickCount64); Persist(); Log($"Assignment «{rule.Name}» saved.");
+        engine.Reset(Environment.TickCount64); Persist(); Log(L.F($"Assignment «{rule.Name}» saved."));
     }
     public void RemoveKeyboardRule(Guid id)
     {
         var rule = Rules.FirstOrDefault(r => r.Event == EventKind.KeyDown && r.Id == id);
         if (rule is null) return;
-        Rules.Remove(rule); engine.Reset(Environment.TickCount64); Persist(); Log("Assignment deleted.");
+        Rules.Remove(rule); engine.Reset(Environment.TickCount64); Persist(); Log(L.T("Assignment deleted."));
         if (SelectedRule?.Id == id) SelectedRule = AutomationRules.FirstOrDefault();
     }
     public async Task ToggleAsync()
     {
         if (Running) { await StopAsync(); return; }
-        if (Busy) { Log("Wait for the connection to finish."); return; }
+        if (Busy) { Log(L.T("Wait for the connection to finish.")); return; }
         try
         {
             engine.Reset(Environment.TickCount64); input.Start(); Running = true; timer.Start();
-            Log("Rules enabled. Input is processed locally; typed text is not stored.");
+            Log(L.T("Rules enabled. Input is processed locally; typed text is not stored."));
         }
-        catch (Exception ex) { Log($"Could not enable events: {ex.Message}"); }
+        catch (Exception ex) { Log(L.F($"Could not enable events: {ex.Message}")); }
     }
     public void SaveMouseRule(Rule rule)
     {
@@ -192,13 +193,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         var index = Rules.ToList().FindIndex(r => r.Id == rule.Id);
         if (index < 0) Rules.Add(rule.Copy()); else Rules[index] = rule.Copy();
         if (SelectedRule?.Id == rule.Id) SelectedRule = AutomationRules.FirstOrDefault();
-        engine.Reset(Environment.TickCount64); Persist(); Log($"Mouse assignment «{rule.Name}» saved.");
+        engine.Reset(Environment.TickCount64); Persist(); Log(L.F($"Mouse assignment «{rule.Name}» saved."));
     }
     public void RemoveMouseRule(Guid id)
     {
         var rule = Rules.FirstOrDefault(r => MousePresetStore.CanEdit(r) && r.Id == id);
         if (rule is null) return;
-        Rules.Remove(rule); engine.Reset(Environment.TickCount64); Persist(); Log("Mouse assignment deleted.");
+        Rules.Remove(rule); engine.Reset(Environment.TickCount64); Persist(); Log(L.T("Mouse assignment deleted."));
         if (SelectedRule?.Id == id) SelectedRule = AutomationRules.FirstOrDefault();
     }
     private void Pause()
@@ -209,8 +210,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     public async Task StopAsync()
     {
         Pause(); await transportGate.WaitAsync();
-        try { await transport.SendAsync(ToyCommand.Stop, CancellationToken.None); Log("All toys stopped. Rules are paused."); }
-        catch (Exception ex) { Log($"Could not confirm stop: {ex.Message}"); }
+        try { await transport.SendAsync(ToyCommand.Stop, CancellationToken.None); Log(L.T("All toys stopped. Rules are paused.")); }
+        catch (Exception ex) { Log(L.F($"Could not confirm stop: {ex.Message}")); }
         finally { transportGate.Release(); }
     }
     public async Task DiscoverAsync()
@@ -225,7 +226,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
             if (!reuse)
             {
                 await transport.DisposeAsync(); transport = new OfflineTransport(); activeTransportIndex = -1;
-                ConnectionName = transport.Name;
+                ConnectionName = L.T(transport.Name);
                 transport = createTransport(TransportIndex, ApiUrl); activeTransportIndex = TransportIndex; activeApiUrl = ApiUrl;
                 if (transport is IsolatedBleTransport ble)
                 {
@@ -236,21 +237,21 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
                         Pause();
                         for (var i = 0; i < Toys.Count; i++) Toys[i] = Toys[i] with { Connected = false };
                         SelectedToy = null; Changed(nameof(SelectedToy)); Changed(nameof(Targets));
-                        Log("Bluetooth worker exited. Rules are paused. " + error);
+                        Log(L.T("Bluetooth worker exited. Rules are paused. ") + error);
                     });
                 }
             }
             var selectedId = SelectedToy?.Id;
-            ConnectionName = transport.Name; Toys.Clear();
-            Log("Finding devices…");
+            ConnectionName = L.T(transport.Name); Toys.Clear();
+            Log(L.T("Finding devices…"));
             foreach (var toy in await transport.DiscoverAsync(discoveryLifetime.Token)) Toys.Add(toy);
             SelectedToy = Toys.FirstOrDefault(t => t.Id == selectedId) ?? Toys.FirstOrDefault(); Changed(nameof(SelectedToy)); Persist();
             Changed(nameof(Targets));
-            Log(Toys.Any(t => t.Connected) ? $"Devices found: {Toys.Count}. Rules are paused." : "No devices connected. Check power and connection.");
+            Log(Toys.Any(t => t.Connected) ? L.F($"Devices found: {Toys.Count}. Rules are paused.") : L.T("No devices connected. Check power and connection."));
         }
         catch (DllNotFoundException) { Log("LovenseBLE_Lib.dll not found. Run scripts/Setup-Ble.ps1 and rebuild the application."); }
         catch (BadImageFormatException) { Log("A 64-bit LovenseBLE_Lib.dll is required."); }
-        catch (Exception ex) { Log($"Connection failed: {ex.Message}"); }
+        catch (Exception ex) { Log(L.F($"Connection failed: {ex.Message}")); }
         finally { Busy = false; transportGate.Release(); }
     }
     public Task TestRuleAsync()
@@ -258,12 +259,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         if (Draft.Validate() is { } error) { Log(error); return Task.CompletedTask; }
         return FireAsync(new(Draft.Copy(), Draft.Threshold), false);
     }
-    public Task ManualAsync(bool pulse) => SendAsync(new(pulse ? ActionKind.Pulse : ActionKind.Vibrate, ManualIntensity, ManualDuration, ToyId: SelectedToy?.Id ?? ""), "Manual control");
+    public Task ManualAsync(bool pulse) => SendAsync(new(pulse ? ActionKind.Pulse : ActionKind.Vibrate, ManualIntensity, ManualDuration, ToyId: SelectedToy?.Id ?? ""), L.T("Manual control"));
     internal Task FireAsync(RuleMatch match, bool automatic = true)
     {
         var r = match.Rule;
-        if (automatic && ObserveOnly) { Log($"Observation: «{r.Name}» triggered; value {RulePresentation.Number(match.Value)}. No command sent."); return Task.CompletedTask; }
-        return SendAsync(match.Command(), $"Rule «{r.Name}»");
+        if (automatic && ObserveOnly) { Log(L.F($"Observation: «{r.Name}» triggered; value {RulePresentation.Number(match.Value)}. No command sent.")); return Task.CompletedTask; }
+        return SendAsync(match.Command(), L.F($"Rule «{r.Name}»"));
     }
     private async Task SendAsync(ToyCommand command, string origin)
     {
@@ -274,7 +275,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         {
             if (revision != generation || closing) return;
             if (command.Kind != ActionKind.Stop && !Toys.Any(t => t.Connected && (command.ToyId.Length == 0 || t.Id == command.ToyId)))
-                throw new InvalidOperationException("The selected toy is not connected.");
+                throw new InvalidOperationException(L.T("The selected toy is not connected."));
             await transport.SendAsync(command, CancellationToken.None);
             var actionName = command.Kind == ActionKind.Pulse ? "pulse" : "vibration";
             if (command.RenewalId.Length == 0 || command.RenewalId != lastWheelLogId || Environment.TickCount64 - lastWheelLogAt >= 500)
@@ -297,7 +298,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     }
     public async Task ImportProfileAsync(Profile profile)
     {
-        await StopAsync(); SetProfile(profile); canSave = true; Persist(); Log("Profile imported and saved. Rules are paused.");
+        await StopAsync(); SetProfile(profile); canSave = true; Persist(); Log(L.T("Profile imported and saved. Rules are paused."));
     }
     public async Task ImportKeyboardAsync(KeyboardPreset preset)
     {
@@ -309,12 +310,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         if (System.IO.File.Exists(ProfileStore.PathName)) System.IO.File.Copy(ProfileStore.PathName, ProfileStore.PathName + ".before-keyboard-import.bak", true);
         ProfileStore.Save(next);
         SetProfile(next); canSave = true;
-        Log($"Keyboard assignments imported: {preset.Rules.Count}. Other events preserved. Rules are paused.");
+        Log(L.F($"Keyboard assignments imported: {preset.Rules.Count}. Other events preserved. Rules are paused."));
     }
     private void Persist()
     {
-        if (!canSave) { Log("Autosave is disabled: recover the damaged profile or export a new one."); return; }
-        try { ProfileStore.Save(GetProfile()); } catch (Exception ex) { Log($"Profile not saved: {ex.Message}"); }
+        if (!canSave) { Log(L.T("Autosave is disabled: recover the damaged profile or export a new one.")); return; }
+        try { ProfileStore.Save(GetProfile()); } catch (Exception ex) { Log(L.F($"Profile not saved: {ex.Message}")); }
     }
     public async Task ImportMouseAsync(MousePreset preset)
     {
@@ -323,7 +324,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         await StopAsync();
         if (System.IO.File.Exists(ProfileStore.PathName)) System.IO.File.Copy(ProfileStore.PathName, ProfileStore.PathName + ".before-mouse-import.bak", true);
         ProfileStore.Save(next); SetProfile(next); canSave = true;
-        Log($"Mouse assignments imported: {preset.Rules.Count}. Other events preserved. Rules are paused.");
+        Log(L.F($"Mouse assignments imported: {preset.Rules.Count}. Other events preserved. Rules are paused."));
     }
     private void Changed([CallerMemberName] string? property = null) => PropertyChanged?.Invoke(this, new(property));
     public async ValueTask DisposeAsync()

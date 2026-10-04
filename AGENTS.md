@@ -1,6 +1,6 @@
 # Lovense Integrator: instructions for future sessions
 
-This Windows desktop application controls Lovense toys through configurable event rules. Keep the existing C# / .NET 10 / WPF stack. Source code, UI, documentation and AI instructions are in English. Follow the user's language when replying in chat.
+This Windows desktop application controls Lovense toys through configurable event rules. Keep the existing C# / .NET 10 / WPF stack. Source code, documentation and AI instructions are in English. UI supports English and Russian; read [docs/LOCALIZATION.md](docs/LOCALIZATION.md) for adding display strings without translating IDs or user content. Follow the user's language when replying in chat.
 
 ## Start here
 
@@ -27,6 +27,7 @@ The user authorized initializing Git and publishing to `git@github.com:timurchak
 - Rules stay paused at startup, connection refresh, import and transport failure. Do not resume physical actions automatically after recovery.
 - Keep installation ID `LovenseIntegratorApp` distinct from the profile folder `LovenseIntegrator`; uninstall must not remove profiles. Workers/diagnostics must never auto-apply updates or start a visible UI. Stop/dispose the transport before update restart.
 - Keep Velopack NuGet and `dotnet-tools.json` versions aligned. Tags must match `Directory.Build.props`. Release packages must exclude the vendor DLL; first Bluetooth use downloads the pinned SDK from Lovense and verifies SHA-256.
+- The public Setup EXE is an Inno wizard wrapping Velopack; keep folder selection and the review page. Velopack owns installed files and uninstall. Inno `CreateAppDir` must remain `yes`, otherwise the folder page disappears. Never accept a nonempty destination unless it is the registered installation of the same package.
 - Discovery/connection must not start vibration. Diagrams and effect previews do not send commands. Honor hardware-testing authorization already given in the session, but do not expand a connection test into motor activation.
 - Preserve Stop, `Ctrl+Alt+F12`, cancellation of previous timers and invalidation of queued commands. Do not accumulate stale effects.
 - Normal UI uses `IsolatedBleTransport`; native `BleTransport` runs in a hidden worker. Do not restore `_Quit` to refresh/shutdown of a working BLE session: a native crash was confirmed. Do not replace worker termination with `Environment.Exit` without physical revalidation: that also produced shutdown crashes.

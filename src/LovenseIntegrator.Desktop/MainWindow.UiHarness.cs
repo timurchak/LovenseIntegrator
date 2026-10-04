@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -51,13 +52,13 @@ public partial class MainWindow
                 foreach (var item in Descendants<T>(child)) yield return item;
             }
         }
-        Button Button(string caption) => Descendants<Button>(content).Single(b => b.Content as string == caption);
+        Button Button(string caption) => Descendants<Button>(content).Single(b => b.Content as string == L.T(caption));
         void Click(string caption) => Button(caption).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
         async Task StartRecording()
         {
             CaptureButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             await Layout();
-            Check(capturing && !vm.Running && CaptureButton.Content as string == "Cancel recording", "recording starts with rules paused");
+            Check(capturing && !vm.Running && CaptureButton.Content as string == L.T("Cancel recording"), "recording starts with rules paused");
         }
         using var keySource = new HwndSource(new HwndSourceParameters("Lovense UI harness keys") { Width = 1, Height = 1, PositionX = -32000, PositionY = -32000, WindowStyle = 0 });
         void SendKey(Key key, bool down = true)
@@ -75,14 +76,39 @@ public partial class MainWindow
         try
         {
             await vm.DiscoverAsync(); await Layout();
-            Check(vm.ConnectionName == "Demo mode" && vm.Toys.Count == 2, "demo transport only");
+            Check(vm.ConnectionName == L.T("Demo mode") && vm.Toys.Count == 2, "demo transport only");
+            await Group("Language settings and profile preservation", async () =>
+            {
+                var profileBefore = File.ReadAllBytes(ProfileStore.PathName);
+                var rulesBefore = vm.Rules.Select(Snapshot).ToArray();
+                Modes.SelectedItem = SettingsTab; await Layout(1120, 720);
+                Check((string)SettingsTab.Header == L.T("  Settings  "), "settings tab uses chosen interface language");
+                Check((string)KeyboardTab.Header == L.T("  Keyboard  "), "keyboard tab uses chosen interface language");
+                Check(RulePresentation.Event(EventKind.MouseDown).Category == L.T("Mouse"), "localized catalog categories retain event identities");
+                LanguageSelector.SelectedValue = L.Language == "ru" ? "en" : "ru";
+                SaveLanguageButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Check(LanguagePreferences.Read(LanguageSettingsPath) == (string)LanguageSelector.SelectedValue, "language saved through real settings controls");
+                Check(LanguageSaveStatus.Text == L.T("Language saved. Restart the app when you are ready."), "restart requirement is visible");
+                Check(File.ReadAllBytes(ProfileStore.PathName).SequenceEqual(profileBefore) && vm.Rules.Select(Snapshot).SequenceEqual(rulesBefore), "language changes preserve profile bytes and live rules");
+                Check(!vm.Running, "saving language does not enable rules");
+                LanguageSelector.SelectedValue = L.Language;
+                SaveLanguageButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                await Layout(1120, 720);
+                var bitmap = new RenderTargetBitmap(1120, 720, 96, 96, PixelFormats.Pbgra32);
+                var background = new DrawingVisual(); using (var dc = background.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, 1120, 720));
+                bitmap.Render(background);
+                bitmap.Render(content);
+                var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using var output = File.Create(Path.Combine(directory, "settings-1120.png")); encoder.Save(output);
+                Modes.SelectedItem = RulesTab; await Layout();
+            });
             await Group("Updates tab and development-build guard", async () =>
             {
                 Modes.SelectedItem = UpdatesTab; await Layout(1120, 720);
                 Check(ReferenceEquals(UpdatesPanel.DataContext, updates), "updates has its own binding context");
                 Check(!updates.CanCheck && !CheckUpdatesButton.IsEnabled, "development builds cannot download updates");
                 Check(!updates.CanRestart && !RestartUpdateButton.IsEnabled, "restart requires a verified package");
-                Check(UpdateStatus.Text.Contains("Development build"), "uninstalled state is explained");
+                Check(UpdateStatus.Text.Contains(L.T("Development build")), "uninstalled state is explained");
                 Check(!vm.Running, "updates view keeps rules paused");
                 var bitmap = new RenderTargetBitmap(1120, 720, 96, 96, PixelFormats.Pbgra32);
                 var background = new DrawingVisual(); using (var dc = background.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, 1120, 720));
@@ -136,14 +162,14 @@ public partial class MainWindow
                     vm.UseRecipe(recipe); await Layout();
                     Check(vm.Draft.Validate() is null && vm.Draft.Copy().Id != recipe.Rule.Id, recipe.Name + " independent draft");
                     RuleName.Text = recipe.Name + " — test"; IntensitySlider.Value = 13;
-                    Click("Save"); await Layout();
+                    Click(L.T("Save")); await Layout();
                     Check(vm.Rules.Count == count + 1 && vm.SelectedRule?.Intensity == 13 && Snapshot(recipe.Rule) == original, recipe.Name + " save without changing template");
                     var identity = vm.SelectedRule!.Id;
-                    RuleName.Text += " changed"; Click("Save"); await Layout();
+                    RuleName.Text += " changed"; Click(L.T("Save")); await Layout();
                     Check(vm.Rules.Count == count + 1 && vm.SelectedRule!.Id == identity, "edit replaces same ID");
                 }
                 var removed = vm.Rules[2].Id; var survivors = vm.Rules.Where(r => r.Id != removed).Select(Snapshot).ToArray();
-                vm.SelectedRule = vm.Rules[2]; Click("Delete"); await Layout();
+                vm.SelectedRule = vm.Rules[2]; Click(L.T("Delete")); await Layout();
                 Check(vm.Rules.Select(Snapshot).SequenceEqual(survivors), "deleting middle row preserves every other rule");
                 var persisted = ProfileStore.Load();
                 Check(persisted.Rules.Select(Snapshot).SequenceEqual(survivors), "persisted deletion keeps same IDs and settings");
@@ -180,9 +206,9 @@ public partial class MainWindow
                 TargetSelector.SelectedValue = "demo-lush"; await Layout(); Check(vm.Draft.ToyId == "demo-lush", "target selection by stable ID");
                 await vm.DiscoverAsync(); await Layout(); Check(vm.Draft.ToyId == "demo-lush", "selected available target survives discovery");
                 vm.Draft.ToyId = "disconnected-test-id"; await vm.TestRuleAsync();
-                Check(vm.Journal[0].Contains("not connected"), "explicit test reports missing target");
+                Check(vm.Journal[0].Contains(L.T("The selected toy is not connected.")), "explicit test reports missing target");
                 vm.ObserveOnly = true; await vm.FireAsync(new(vm.Draft.Copy(), 1));
-                Check(vm.Journal[0].Contains("Observation:"), "observation works without connected target"); vm.ObserveOnly = false;
+                Check(vm.Journal[0].Contains(L.Language == "ru" ? "Наблюдение:" : "Observation:"), "observation works without connected target"); vm.ObserveOnly = false;
             });
             Check(bindingOutput.ToString().Length == 0, "no binding errors during transitions, refresh and recording: " + bindingOutput);
             // Conversion errors here are deliberate; test UI error recovery and block invalid saves.
@@ -192,14 +218,14 @@ public partial class MainWindow
                 foreach (var invalid in new[] { "abc", "", "NaN", "Infinity", "-1", "0" })
                 {
                     ThresholdInput.Text = invalid; var before = vm.Rules.Count;
-                    Click("Save"); await Layout(); Check(vm.Rules.Count == before, "cannot save threshold " + invalid);
+                    Click(L.T("Save")); await Layout(); Check(vm.Rules.Count == before, "cannot save threshold " + invalid);
                 }
                 ThresholdInput.Text = (0.85).ToString(CultureInfo.CurrentCulture); await Layout();
                 Check(!Validation.GetHasError(ThresholdInput) && vm.Draft.Threshold == 850, "fractional seconds use selected language");
                 ThresholdInput.Text = "invalid"; vm.Draft.ChooseEvent(EventKind.KeyDown); await Layout();
-                var count = vm.Rules.Count; Click("Save"); await Layout();
+                var count = vm.Rules.Count; Click(L.T("Save")); await Layout();
                 Check(vm.Rules.Count == count + 1, "irrelevant hidden invalid field does not block valid rule");
-                RuleName.Text = "   "; Click("Save"); await Layout();
+                RuleName.Text = "   "; Click(L.T("Save")); await Layout();
                 Check(vm.SelectedRule!.Name != "   " && vm.Journal[0].Contains("name"), "blank name rejected");
                 vm.SelectedRule = vm.Rules.First(); await Layout();
                 Check(!HasErrors(Editor) && RuleName.Text == vm.SelectedRule!.Name, "switching draft clears stale validation");
@@ -222,28 +248,28 @@ public partial class MainWindow
                 await vm.ImportProfileAsync(ProfileStore.Load(path)); await Layout();
                 Check(!vm.Running && vm.Rules.Select(Snapshot).SequenceEqual(profile.Rules.Select(Snapshot)), "all events roundtrip and import leaves rules paused");
                 Check(ProfileStore.Load().Rules.Select(Snapshot).SequenceEqual(profile.Rules.Select(Snapshot)), "import persisted every rule");
-                while (vm.Rules.Count > 0) { vm.SelectedRule = vm.Rules.Last(); Click("Delete"); }
+                while (vm.Rules.Count > 0) { vm.SelectedRule = vm.Rules.Last(); Click(L.T("Delete")); }
                 await Layout(); Check(vm.SelectedRule is null && ProfileStore.Load().Rules.Count == 0 && !HasErrors(Editor), "empty rule list remains editable and persists");
-                Click("+ New rule"); RuleName.Text = "After deleting all"; Click("Save"); await Layout();
+                Click(L.T("+ New rule")); RuleName.Text = "After deleting all"; Click(L.T("Save")); await Layout();
                 Check(vm.Rules.Count == 1 && vm.Rules[0].Name == RuleName.Text, "create first rule again");
             });
             await Group("Short keyboard feedback presets and persistence", async () =>
             {
-                vm.UseRecipe(vm.Recipes.Single(r => r.Name == "Keyboard feedback")); await Layout();
+                vm.UseRecipe(vm.Recipes.Single(r => r.Name == L.T("Keyboard feedback"))); await Layout();
                 Check(vm.Draft.Event == EventKind.KeyDown && vm.Draft.Keys == "" && vm.Draft.DurationSeconds == 0.15 && vm.Draft.CooldownMs == 200,
                     "feedback recipe selects physical keys, 150 ms duration and 200 ms cooldown");
                 foreach (var (caption, seconds) in new[] { ("100 ms", 0.1), ("150 ms", 0.15), ("250 ms", 0.25) })
                 {
                     Click(caption); await Layout();
-                    Check(vm.Draft.DurationSeconds == seconds && DurationSlider.Value == seconds && EffectGraph.Duration == seconds && vm.Draft.DurationText == caption && vm.Draft.Summary.Contains(caption),
+                    Check(vm.Draft.DurationSeconds == seconds && DurationSlider.Value == seconds && EffectGraph.Duration == seconds && vm.Draft.DurationText == L.T(caption) && vm.Draft.Summary.Contains(L.T(caption)),
                         caption + " preset preserves fractional seconds and updates visible bindings");
                 }
                 DurationSlider.Value = 0.15; await Layout();
                 Check(vm.Draft.DurationSeconds == 0.15, "duration slider retains 150 ms");
-                Click("Save"); await Layout(); var savedId = vm.SelectedRule!.Id;
+                Click(L.T("Save")); await Layout(); var savedId = vm.SelectedRule!.Id;
                 Check(ProfileStore.Load().Rules.Single(r => r.Id == savedId).DurationSeconds == 0.15, "subsecond duration persisted exactly");
                 await vm.TestRuleAsync();
-                Check(vm.Journal[0].Contains("150 ms") && vm.Journal[0].Contains("[demo]"), "test feedback uses demo and logs milliseconds");
+                Check(vm.Journal[0].Contains(L.T("150 ms")) && vm.Journal[0].Contains("[demo]"), "test feedback uses demo and logs milliseconds");
                 await Layout(1120, 720); EditorScroll.ScrollToTop(); await Layout(1120, 720);
                 var bitmap = new RenderTargetBitmap(1120, 720, 96, 96, PixelFormats.Pbgra32);
                 var background = new DrawingVisual(); using (var dc = background.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, 1120, 720));
@@ -260,7 +286,7 @@ public partial class MainWindow
                 foreach (var (width, height) in new[] { (1120, 720), (1360, 900) })
                 {
                     await Layout(width, height);
-                    foreach (var caption in new[] { "Save", "Test action", "Delete", "STOP ALL" })
+                    foreach (var caption in new[] { L.T("Save"), L.T("Test action"), L.T("Delete"), L.T("STOP ALL") })
                     {
                         var button = Button(caption); var bounds = button.TransformToAncestor(content).TransformBounds(new Rect(button.RenderSize));
                         Check(button.ActualWidth > 0 && bounds.Left >= 0 && bounds.Top >= 0 && bounds.Right <= width && bounds.Bottom <= height, caption + " reachable at " + width);
@@ -333,7 +359,7 @@ public partial class MainWindow
                 foreach (var (width, height) in new[] { (1360, 900), (1120, 720) })
                 {
                     await Layout(width, height);
-                    var save = Descendants<Button>(KeyboardMode).Single(b => b.Content as string == "Save assignment");
+                    var save = Descendants<Button>(KeyboardMode).Single(b => b.Content as string == L.T("Save assignment"));
                     var bounds = save.TransformToAncestor(content).TransformBounds(new Rect(save.RenderSize));
                     Check(bounds.Top >= 0 && bounds.Bottom <= height && bounds.Right <= width, "keyboard save stays reachable at " + width);
                     var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
@@ -378,7 +404,7 @@ public partial class MainWindow
                 foreach (var (width, height) in new[] { (1360, 900), (1120, 720) })
                 {
                     await Layout(width, height);
-                    var save = Descendants<Button>(MouseMode).Single(b => b.Content as string == "Save assignment");
+                    var save = Descendants<Button>(MouseMode).Single(b => b.Content as string == L.T("Save assignment"));
                     var bounds = save.TransformToAncestor(content).TransformBounds(new Rect(save.RenderSize));
                     Check(bounds.Top >= 0 && bounds.Bottom <= height && bounds.Right <= width, "mouse save reachable at " + width);
                     var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
@@ -393,7 +419,7 @@ public partial class MainWindow
                 var settingsEncoder = new PngBitmapEncoder(); settingsEncoder.Frames.Add(BitmapFrame.Create(settingsBitmap));
                 using var settingsFile = File.Create(Path.Combine(directory, "mouse-mode-settings.png")); settingsEncoder.Save(settingsFile);
             });
-            File.WriteAllText(Path.Combine(directory, "report.json"), JsonSerializer.Serialize(new { Result = "PASS", Culture = CultureInfo.CurrentCulture.Name, Checks = checks, Groups = groups,
+            File.WriteAllText(Path.Combine(directory, "report.json"), JsonSerializer.Serialize(new { Result = "PASS", Language = L.Language, Culture = CultureInfo.CurrentCulture.Name, Checks = checks, Groups = groups,
                 Scope = "Real offscreen WPF controls/bindings/routed events; demo transport; no global hooks or live hardware; scaled raster output, not monitor DPI switching." }, new JsonSerializerOptions { WriteIndented = true }));
         }
         finally

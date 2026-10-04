@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.ComponentModel;
 using System.Windows.Input;
 using LovenseIntegrator.Core;
@@ -58,25 +59,25 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     public Guid? SelectedId { get; private set; }
     private bool CanEdit(Rule r) => IsMouse ? MousePresetStore.CanEdit(r) : KeyboardPresetStore.CanEdit(r);
     public IReadOnlyList<KeyboardAssignment> Groups => owner.Rules.Where(CanEdit).Select(r => new KeyboardAssignment(r.Id, r.Name,
-        IsMouse ? (r.MouseLayer && r.Keys.Length == 0 ? "All buttons and wheel" + (r.ExcludedKeys.Length == 0 ? "" : " · exclusions") : string.Join(", ", (r.MouseLayer ? r : MousePresetStore.Normalize(r)).KeyList().Select(MouseLabel))) : string.IsNullOrWhiteSpace(r.Keys) ? $"All keys{(r.ExcludedKeys.Length == 0 ? "" : " · with exclusions")}" : $"Keys: {r.KeyList().Length}",
-        (r.Process.Length == 0 ? "Any application" : r.Process) + (r.WindowTitleContains.Length == 0 ? "" : " · window filter"), r.Enabled)).ToArray();
+        IsMouse ? (r.MouseLayer && r.Keys.Length == 0 ? L.T("All buttons and wheel") + (r.ExcludedKeys.Length == 0 ? "" : L.T(" · exclusions")) : string.Join(", ", (r.MouseLayer ? r : MousePresetStore.Normalize(r)).KeyList().Select(MouseLabel))) : string.IsNullOrWhiteSpace(r.Keys) ? L.F($"All keys{(r.ExcludedKeys.Length == 0 ? "" : L.T(" · with exclusions"))}") : L.F($"Keys: {r.KeyList().Length}"),
+        (r.Process.Length == 0 ? L.T("Any application") : r.Process) + (r.WindowTitleContains.Length == 0 ? "" : L.T(" · window filter")), r.Enabled)).ToArray();
     public IReadOnlyList<Choice<string>> Applications => owner.ApplicationChoices.Concat(draft.Process.Length > 0 && !owner.ApplicationChoices.Any(c => c.Value == draft.Process) ? [new Choice<string>(draft.Process, draft.Process)] : Array.Empty<Choice<string>>()).ToArray();
-    public IReadOnlyList<Toy> Targets => new[] { new Toy("", "All connected", true) }.Concat(owner.Toys)
-        .Concat(draft.ToyId.Length > 0 && !owner.Toys.Any(t => t.Id == draft.ToyId) ? [new Toy(draft.ToyId, "Unavailable toy from profile", false)] : Array.Empty<Toy>()).ToArray();
-    public IReadOnlyList<Choice<ActionKind>> Effects { get; } = [new(ActionKind.Vibrate, "Vibration"), new(ActionKind.Pulse, "Pulse"), new(ActionKind.Stop, "Stop")];
+    public IReadOnlyList<Toy> Targets => new[] { new Toy("", L.T("All connected"), true) }.Concat(owner.Toys)
+        .Concat(draft.ToyId.Length > 0 && !owner.Toys.Any(t => t.Id == draft.ToyId) ? [new Toy(draft.ToyId, L.T("Unavailable toy from profile"), false)] : Array.Empty<Toy>()).ToArray();
+    public IReadOnlyList<Choice<ActionKind>> Effects { get; } = [new(ActionKind.Vibrate, L.T("Vibration")), new(ActionKind.Pulse, L.T("Pulse")), new(ActionKind.Stop, L.T("Stop"))];
     public int SelectionCount => all ? InputIds.Count(IsSelected) : included.Count;
-    public string SelectionText => all ? $"{(IsMouse ? "Whole mouse" : "All keys")} · excluded: {excluded.Count}" : $"Selected {(IsMouse ? "inputs" : "keys")}: {included.Count}";
-    public string EditStatus => SelectedId is null ? "New assignment" : "Edit assignment";
-    public string Summary => $"{SelectionText}. {(draft.Process.Length == 0 ? "Any application" : "In " + draft.Process)}{(draft.WindowTitleContains.Length == 0 ? "" : ", window contains «" + draft.WindowTitleContains + "»")} → " +
+    public string SelectionText => all ? L.F($"{(IsMouse ? L.T("Whole mouse") : L.T("All keys"))} · excluded: {excluded.Count}") : L.F($"Selected {(IsMouse ? L.T("inputs") : L.T("keys"))}: {included.Count}");
+    public string EditStatus => SelectedId is null ? L.T("New assignment") : L.T("Edit assignment");
+    public string Summary => $"{SelectionText}. {(draft.Process.Length == 0 ? L.T("Any application") : L.T("In ") + draft.Process)}{(draft.WindowTitleContains.Length == 0 ? "" : L.T(", window contains «") + draft.WindowTitleContains + "»")} → " +
         EffectSummary;
-    private static string MouseLabel(string key) => key.ToLowerInvariant() switch { "left" => "Left", "right" => "Right", "middle" => "Wheel click", "up" => "Wheel ↑", "down" => "Wheel ↓", _ => key };
+    private static string MouseLabel(string key) => key.ToLowerInvariant() switch { "left" => L.T("Left"), "right" => L.T("Right"), "middle" => L.T("Wheel click"), "up" => L.T("Wheel ↑"), "down" => L.T("Wheel ↓"), _ => key };
     private string EffectSummary
     {
         get
         {
-            var effect = draft.Action == ActionKind.Stop ? "stop." : $"{(draft.Action == ActionKind.Pulse ? "pulse" : "feedback")} {draft.Intensity}/20 for {draft.DurationText}.";
+            var effect = draft.Action == ActionKind.Stop ? L.T("stop.") : L.F($"{(draft.Action == ActionKind.Pulse ? L.T("pulse") : L.T("feedback"))} {draft.Intensity}/20 for {draft.DurationText}.");
             if (!IsMouse || !draft.WheelContinuous || !MouseInputs.Wheel.Any(IsSelected)) return effect;
-            var wheel = $"Wheel vibration {draft.Intensity}/20 while scrolling; stops after {draft.WheelIdleMs} ms without scrolling.";
+            var wheel = L.F($"Wheel vibration {draft.Intensity}/20 while scrolling; stops after {draft.WheelIdleMs} ms without scrolling.");
             return MouseInputs.Buttons.Any(IsSelected) ? effect + " " + wheel : wheel;
         }
     }
@@ -108,7 +109,7 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     public void New()
     {
         SelectedId = null; all = false; included.Clear(); excluded.Clear();
-        SetDraft(new Rule { KeyboardLayer = !IsMouse, MouseLayer = IsMouse, Event = IsMouse ? EventKind.MouseDown : EventKind.KeyDown, Name = "New assignment", Keys = "", DurationSeconds = IsMouse ? 0.1 : 0.15, CooldownMs = IsMouse ? 0 : 200, Intensity = 5 });
+        SetDraft(new Rule { KeyboardLayer = !IsMouse, MouseLayer = IsMouse, Event = IsMouse ? EventKind.MouseDown : EventKind.KeyDown, Name = L.T("New assignment"), Keys = "", DurationSeconds = IsMouse ? 0.1 : 0.15, CooldownMs = IsMouse ? 0 : 200, Intensity = 5 });
     }
     public void Load(Guid id)
     {
@@ -120,7 +121,7 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     }
     public void Duplicate()
     {
-        var rule = BuildRule(); rule.Id = Guid.NewGuid(); rule.Name += " · copy"; SelectedId = null; SetDraft(rule);
+        var rule = BuildRule(); rule.Id = Guid.NewGuid(); rule.Name += L.T(" · copy"); SelectedId = null; SetDraft(rule);
     }
     public bool IsSelected(string key) => all ? !excluded.Contains(key) : included.Contains(key);
     public bool IsExcluded(string key) => all && excluded.Contains(key);
@@ -163,14 +164,14 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     }
     public bool Save()
     {
-        if (SelectionCount == 0) { owner.Log(IsMouse ? "Select a button or wheel direction on the diagram." : "Select at least one key on the layout."); return false; }
+        if (SelectionCount == 0) { owner.Log(IsMouse ? L.T("Select a button or wheel direction on the diagram.") : L.T("Select at least one key on the layout.")); return false; }
         var rule = BuildRule();
         if (rule.Validate() is { } error) { owner.Log(error); return false; }
         if (IsMouse) owner.SaveMouseRule(rule); else owner.SaveKeyboardRule(rule); SelectedId = rule.Id; Changed(nameof(SelectedId)); Changed(nameof(EditStatus)); return true;
     }
     public async Task TestAsync()
     {
-        if (SelectionCount == 0) { owner.Log("Select inputs for this assignment."); return; }
+        if (SelectionCount == 0) { owner.Log(L.T("Select inputs for this assignment.")); return; }
         var rule = BuildRule(); if (rule.Validate() is { } error) { owner.Log(error); return; }
         await owner.FireAsync(new(rule, 1, IsMouse && rule.WheelContinuous && MouseInputs.Wheel.Any(IsSelected)), false);
     }
@@ -180,7 +181,7 @@ public sealed class InputModeViewModel : INotifyPropertyChanged
     {
         var rules = owner.Rules.Where(CanEdit).Where(r => !selectedOnly || r.Id == SelectedId);
         if (IsMouse) MousePresetStore.Save(path, rules, MouseInputs.All); else KeyboardPresetStore.Save(path, rules, InputIds);
-        owner.Log($"Saved assignments {(IsMouse ? "mouse" : "keyboard")} exported. Unsaved draft changes are not included.");
+        owner.Log(L.F($"Saved assignments {(IsMouse ? L.T("mouse") : L.T("keyboard"))} exported. Unsaved draft changes are not included."));
     }
     public async Task ImportFileAsync(string path)
     {

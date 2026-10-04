@@ -20,7 +20,7 @@ jobs:
       - name: WPF smoke
         shell: pwsh
         run: ./scripts/Test-Desktop.ps1
-      - name: WPF UI harness (both cultures)
+      - name: WPF UI harness (both languages and cultures)
         shell: pwsh
         run: ./scripts/Test-UiHarness.ps1
       - name: BLE worker recovery (demo only)

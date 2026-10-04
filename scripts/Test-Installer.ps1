@@ -7,7 +7,7 @@ Push-Location $projectRoot
 try {
     $releaseRoot = [IO.Path]::GetFullPath($ReleaseDirectory)
     $runRoot = Join-Path $projectRoot ("artifacts/installer/" + [guid]::NewGuid().ToString('N'))
-    $installed = Join-Path $runRoot 'installed'
+    $installed = Join-Path $runRoot 'custom install path'
     $feed = Join-Path $runRoot 'feed'
     New-Item -ItemType Directory -Path $runRoot, $feed -Force | Out-Null
     $setup = Join-Path $releaseRoot 'LovenseIntegratorApp-win-Setup.exe'
@@ -29,8 +29,18 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Test package failed.' }
         if ($version -eq '0.0.1') {
             $testSetup = Join-Path $feed 'LovenseIntegratorInstallerTest-win-Setup.exe'
-            $process = Start-Process -FilePath $testSetup -ArgumentList @('--silent', '--installto', ('"' + $installed + '"')) -WindowStyle Hidden -PassThru
+            $bootstrap = Join-Path $runRoot 'test-bootstrap.exe'
+            Move-Item -LiteralPath $testSetup -Destination $bootstrap
+            & (Join-Path $PSScriptRoot 'Wrap-Installer.ps1') -Bootstrapper $bootstrap -OutputDirectory $feed -Version $version -PackageId LovenseIntegratorInstallerTest
+            # Refuse unrelated files instead of handing a nonempty directory to the bootstrapper.
+            $occupied = Join-Path $runRoot 'unrelated files'
+            New-Item -ItemType Directory -Path $occupied | Out-Null
+            $keep = Join-Path $occupied 'keep.txt'; Set-Content -LiteralPath $keep 'Must be preserved'
+            $reject = Start-Process -FilePath $testSetup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', ('/DIR="' + $occupied + '"')) -WindowStyle Hidden -PassThru
+            if (-not $reject.WaitForExit(60000) -or $reject.ExitCode -eq 0 -or (Get-Content -LiteralPath $keep) -ne 'Must be preserved') { throw 'Wizard did not protect an occupied destination.' }
+            $process = Start-Process -FilePath $testSetup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', ('/DIR="' + $installed + '"'), ('/LOG="' + (Join-Path $runRoot 'wizard-install.log') + '"')) -WindowStyle Hidden -PassThru
             if (-not $process.WaitForExit(120000) -or $process.ExitCode -ne 0) { throw 'Silent test installation failed.' }
+            if (-not (Test-Path -LiteralPath (Join-Path $installed 'current/LovenseIntegrator.exe'))) { throw 'Wizard ignored the selected folder.' }
         }
     }
     $app = Join-Path $installed 'current/LovenseIntegrator.exe'
@@ -72,8 +82,17 @@ try {
     }
     $after = Run-UpdateProbe 'after' @()
     if ($after.Version -ne '0.0.2' -or $after.Available) { throw 'Updated app version mismatch.' }
+    # Upgrade/reinstall through the wizard retains a previously registered custom destination.
+    $bootstrap = Join-Path $runRoot 'test-bootstrap-2.exe'
+    $testSetup = Join-Path $feed 'LovenseIntegratorInstallerTest-win-Setup.exe'
+    Move-Item -LiteralPath $testSetup -Destination $bootstrap
+    & (Join-Path $PSScriptRoot 'Wrap-Installer.ps1') -Bootstrapper $bootstrap -OutputDirectory $feed -Version '0.0.2' -PackageId LovenseIntegratorInstallerTest
+    $reinstall = Start-Process -FilePath $testSetup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -WindowStyle Hidden -PassThru
+    if (-not $reinstall.WaitForExit(120000) -or $reinstall.ExitCode -ne 0) { throw 'Wizard reinstall failed.' }
+    $reinstalled = Run-UpdateProbe 'reinstalled' @()
+    if ($reinstalled.Version -ne '0.0.2') { throw 'Wizard did not retain the existing custom destination.' }
     if ((Get-FileHash -LiteralPath $sentinel).Hash -ne $original) { throw 'External profile changed during update.' }
-    @{ Result = 'PASS'; Before = $before; After = $after; CorruptPackageRejected = $true; ExternalProfilePreserved = $true; VendorDllExcluded = $true } |
+    @{ Result = 'PASS'; Before = $before; After = $after; WizardCustomFolder = $true; WizardExistingFolder = $true; OccupiedFolderRejected = $true; CorruptPackageRejected = $true; ExternalProfilePreserved = $true; VendorDllExcluded = $true } |
         ConvertTo-Json -Depth 5 | Set-Content (Join-Path $runRoot 'report.json')
     Write-Output "Installer/upgrade PASS: $runRoot"
 }

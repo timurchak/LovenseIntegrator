@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
@@ -32,9 +33,9 @@ public sealed class EffectPreview : FrameworkElement
             dc.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(230, 227, 241)), 1), new(left, y), new(right, y));
             if (value % 10 == 0) Label(value.ToString(), 2, y - 7);
         }
-        Label(duration < 1 ? "0 ms" : "0 s", left, bottom + 8);
-        Label(duration < 1 ? $"{shown * 1000:0} ms" : $"{shown:0.##} s", right - 42, bottom + 8);
-        if (duration > shown) Label($"first {shown:0.#} seconds", left + 42, bottom + 8);
+        Label(duration < 1 ? L.T("0 ms") : L.T("0 s"), left, bottom + 8);
+        Label(duration < 1 ? L.F($"{shown * 1000:0} ms") : L.F($"{shown:0.##} s"), right - 42, bottom + 8);
+        if (duration > shown) Label(L.F($"first {shown:0.#} seconds"), left + 42, bottom + 8);
         var level = Kind == ActionKind.Stop ? 0 : Math.Clamp(Intensity, 0, 20);
         double Y(bool on) => bottom - (bottom - top) * (on ? level : 0) / 20;
         var geometry = new StreamGeometry();

@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -75,10 +76,10 @@ public partial class KeyboardModeView : UserControl
     private void DeleteAssignment(object sender, RoutedEventArgs e) => Model.Delete();
     private async void ImportKeyboard(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Filter = "Keyboard assignments (*.json)|*.json", Title = "Import keyboard assignments — add / update by Id" };
+        var dialog = new OpenFileDialog { Filter = "Keyboard assignments (*.json)|*.json", Title = L.T("Import keyboard assignments — add / update by Id") };
         if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
         try { await Model.ImportFileAsync(dialog.FileName); }
-        catch (Exception ex) { Model.Report($"Keyboard import failed: {ex.Message}"); }
+        catch (Exception ex) { Model.Report(L.F($"Keyboard import failed: {ex.Message}")); }
     }
     private void ExportKeyboard(object sender, RoutedEventArgs e)
     {
@@ -90,23 +91,23 @@ public partial class KeyboardModeView : UserControl
     private void ExportSelectedKeyboard(object sender, RoutedEventArgs e) => ExportKeyboardFile(true);
     private void ExportKeyboardFile(bool selectedOnly)
     {
-        if (selectedOnly && Model.SelectedId is null) { Model.Report("Select a saved assignment first."); return; }
+        if (selectedOnly && Model.SelectedId is null) { Model.Report(L.T("Select a saved assignment first.")); return; }
         var dialog = new SaveFileDialog { Filter = "Keyboard assignments (*.json)|*.json", FileName = selectedOnly ? "keyboard-assignment.json" : "keyboard-assignments.json" };
         if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
         try { Model.ExportFile(dialog.FileName, selectedOnly); }
-        catch (Exception ex) { Model.Report($"Keyboard export failed: {ex.Message}"); }
+        catch (Exception ex) { Model.Report(L.F($"Keyboard export failed: {ex.Message}")); }
     }
     private void ShowAiInstructions(object sender, RoutedEventArgs e)
     {
         var text = KeyboardAiInstructions.Read();
-        var window = new Window { Owner = Window.GetWindow(this), Title = "AI instructions — keyboard assignments", Width = 800, Height = 680, MinWidth = 560, MinHeight = 400, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Brushes.White };
+        var window = new Window { Owner = Window.GetWindow(this), Title = L.T("AI instructions — keyboard assignments"), Width = 800, Height = 680, MinWidth = 560, MinHeight = 400, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = Brushes.White };
         var grid = new Grid { Margin = new Thickness(18) }; grid.RowDefinitions.Add(new RowDefinition()); grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var editor = new TextBox { Text = text, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, FontFamily = new FontFamily("Consolas"), FontSize = 12, Padding = new Thickness(10) };
         grid.Children.Add(editor);
         var footer = new StackPanel { Margin = new Thickness(0, 12, 0, 0) }; Grid.SetRow(footer, 1);
-        var status = new TextBlock { Text = "Give these instructions to an AI along with the effects you want.", Margin = new Thickness(0, 0, 0, 8) }; footer.Children.Add(status);
-        var copy = new Button { Content = "Copy instructions", HorizontalAlignment = HorizontalAlignment.Left };
-        copy.Click += (_, _) => { try { Clipboard.SetText(text); status.Text = "Copied. Paste it into your AI chat."; } catch (Exception ex) { status.Text = "Could not copy: " + ex.Message; } };
+        var status = new TextBlock { Text = L.T("Give these instructions to an AI along with the effects you want."), Margin = new Thickness(0, 0, 0, 8) }; footer.Children.Add(status);
+        var copy = new Button { Content = L.T("Copy instructions"), HorizontalAlignment = HorizontalAlignment.Left };
+        copy.Click += (_, _) => { try { Clipboard.SetText(text); status.Text = L.T("Copied. Paste it into your AI chat."); } catch (Exception ex) { status.Text = L.T("Could not copy: ") + ex.Message; } };
         footer.Children.Add(copy); grid.Children.Add(footer); window.Content = grid; window.ShowDialog();
     }
     private void RefreshApps(object? sender, EventArgs e) { refreshing = true; try { Model.RefreshApplications(); } finally { refreshing = false; } RefreshSelections(); }

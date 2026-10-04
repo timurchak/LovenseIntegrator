@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,7 +13,7 @@ public partial class EventPickerWindow : Window
     public EventPickerWindow(EventKind current)
     {
         InitializeComponent();
-        Category.ItemsSource = new[] { "All events" }.Concat(RulePresentation.Events.Select(e => e.Category).Distinct()).ToArray();
+        Category.ItemsSource = new[] { L.T("All events") }.Concat(RulePresentation.Events.Select(e => e.Category).Distinct()).ToArray();
         Category.SelectedIndex = 0; Filter(); Options.SelectedItem = RulePresentation.Event(current);
     }
     private void Filter()
@@ -21,7 +22,7 @@ public partial class EventPickerWindow : Window
         var text = Search.Text.Trim();
         var filtered = RulePresentation.Events.Where(e => (Category.SelectedIndex <= 0 || e.Category == (string)Category.SelectedItem) &&
             (text.Length == 0 || (e.Label + " " + e.Help).Contains(text, StringComparison.OrdinalIgnoreCase))).ToArray();
-        Options.ItemsSource = filtered; Count.Text = $"Events: {filtered.Length}";
+        Options.ItemsSource = filtered; Count.Text = L.F($"Events: {filtered.Length}");
     }
     private void FilterChanged(object sender, SelectionChangedEventArgs e) => Filter();
     private void SearchChanged(object sender, TextChangedEventArgs e) => Filter();
@@ -50,7 +51,7 @@ public partial class EventPickerWindow : Window
             Check(ChooseButton.IsEnabled && SelectedEvent?.Value == option.Value, "select matched " + option.Value);
         }
         Search.Text = "no-such-event-harness";
-        Check(Options.Items.Count == 0 && SelectedEvent is null && !ChooseButton.IsEnabled && Count.Text == "Events: 0", "empty results cannot choose stale event");
+        Check(Options.Items.Count == 0 && SelectedEvent is null && !ChooseButton.IsEnabled && Count.Text == L.T("Events: 0"), "empty results cannot choose stale event");
         Search.Text = "";
         Check(Options.Items.Count == RulePresentation.Events.Count && !ChooseButton.IsEnabled, "clearing search restores complete list without stale selection");
         return checks;
@@ -58,7 +59,7 @@ public partial class EventPickerWindow : Window
     internal void VerifySmoke(string directory)
     {
         if (SelectedEvent?.Value != EventKind.Timer) throw new InvalidOperationException("Event catalog: initial selection.");
-        Category.SelectedItem = "Mouse"; Search.Text = "double";
+        Category.SelectedItem = L.T("Mouse"); Search.Text = "double";
         if (Options.Items.Count != 1 || ((EventOption)Options.Items[0]).Value != EventKind.MouseDoubleClick) throw new InvalidOperationException("Event catalog: category and search.");
         Options.SelectedIndex = 0;
         if (!ChooseButton.IsEnabled) throw new InvalidOperationException("Event catalog: selection.");

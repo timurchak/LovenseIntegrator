@@ -425,6 +425,7 @@ await using (multiConnect)
     Check((await reconnect).All(t => t.Connected) && connectOrder.Count(x => x == "connect:a") == 1, "refresh reconnects only missing second device");
 }
 await UpdateTests.RunAsync(Check);
+LocalizationTests.Run(Check);
 Console.WriteLine($"{passed} checks passed.");
 
 sealed class FakeHandler : HttpMessageHandler

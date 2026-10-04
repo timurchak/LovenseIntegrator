@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -29,6 +30,7 @@ public partial class MainWindow : Window
     public MainWindow(int initialTransport)
     {
         InitializeComponent(); vm = new(initialTransport); DataContext = vm;
+        LanguageSelector.SelectedValue = LanguagePreferences.Read(LanguageSettingsPath);
         updates = new(new GithubUpdateBackend(), Path.Combine(Path.GetDirectoryName(ProfileStore.PathName)!, "updates.json"));
         UpdatesPanel.DataContext = updates;
         if (ProfileStore.OverridePath is null) Loaded += (_, _) => updates.Start();
@@ -62,13 +64,25 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) =>
         {
             try { hotkey = new(new WindowInteropHelper(this).Handle, () => _ = vm.StopAsync()); }
-            catch (Exception ex) { vm.HotkeyStatus = "Hotkey unavailable — use the stop button"; vm.Log(ex.Message); }
+            catch (Exception ex) { vm.HotkeyStatus = L.T("Hotkey unavailable — use the stop button"); vm.Log(ex.Message); }
         };
         Closing += OnClosing;
         PreviewKeyDown += OnKeyDown;
         PreviewKeyUp += OnKeyUp;
     }
     private async void Toggle(object sender, RoutedEventArgs e) => await vm.ToggleAsync();
+    private string LanguageSettingsPath => Path.Combine(Path.GetDirectoryName(ProfileStore.PathName)!, "settings.json");
+    private void SaveLanguage(object sender, RoutedEventArgs e)
+    {
+        if (LanguageSelector.SelectedValue is not string language) return;
+        try
+        {
+            LanguagePreferences.Save(LanguageSettingsPath, language);
+            LanguageSaveStatus.Text = L.T("Language saved. Restart the app when you are ready.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { LanguageSaveStatus.Text = L.T("Could not save language: ") + ex.Message; }
+    }
     private async void CheckUpdates(object sender, RoutedEventArgs e) => await updates.CheckAsync();
     private void RestartToUpdate(object sender, RoutedEventArgs e)
     {
@@ -79,7 +93,7 @@ public partial class MainWindow : Window
     private void OpenReleases(object sender, RoutedEventArgs e)
     {
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(UpdateService.RepositoryUrl + "/releases") { UseShellExecute = true }); }
-        catch (Exception ex) { vm.Log("Could not open releases: " + ex.Message); }
+        catch (Exception ex) { vm.Log(L.T("Could not open releases: ") + ex.Message); }
     }
     private async void StopAll(object sender, RoutedEventArgs e) => await vm.StopAsync();
     private async void Discover(object sender, RoutedEventArgs e) => await vm.DiscoverAsync();
@@ -117,7 +131,7 @@ public partial class MainWindow : Window
     private void DurationPreset(object sender, RoutedEventArgs e) { if (sender is Button { Tag: string number }) vm.Draft.DurationSeconds = double.Parse(number, System.Globalization.CultureInfo.InvariantCulture); }
     private bool Valid(DependencyObject parent)
     {
-        if (HasErrors(parent)) { vm.Log("Check the numeric fields outlined in red."); return false; }
+        if (HasErrors(parent)) { vm.Log(L.T("Check the numeric fields outlined in red.")); return false; }
         return true;
     }
     private static bool HasErrors(DependencyObject parent)
@@ -132,12 +146,12 @@ public partial class MainWindow : Window
         if (capturing) { CancelRecording(); return; }
         await vm.StopAsync();
         originalKeys = vm.Draft.Keys; recordingDraft = vm.Draft; recorder = new(vm.Draft.Event); capturing = true;
-        CaptureButton.Content = "Cancel recording"; CaptureButton.Focus();
+        CaptureButton.Content = L.T("Cancel recording"); CaptureButton.Focus();
         vm.Log(vm.Draft.Event switch
         {
-            EventKind.Chord => "Press the combination, then release all keys. Esc to cancel.",
-            EventKind.Sequence => "Press keys in order. Enter to finish, Esc to cancel (up to 12 keys).",
-            _ => "Press the key to record."
+            EventKind.Chord => L.T("Press the combination, then release all keys. Esc to cancel."),
+            EventKind.Sequence => L.T("Press keys in order. Enter to finish, Esc to cancel (up to 12 keys)."),
+            _ => L.T("Press the key to record.")
         });
     }
     private void OnKeyDown(object sender, KeyEventArgs e)
@@ -154,29 +168,29 @@ public partial class MainWindow : Window
     }
     private void ApplyRecording(KeyRecordingResult result)
     {
-        if (result.Cancelled) { CancelRecording(); vm.Log("Recording cancelled. Previous keys preserved."); return; }
+        if (result.Cancelled) { CancelRecording(); vm.Log(L.T("Recording cancelled. Previous keys preserved.")); return; }
         if (result.Keys.Length > 0) vm.Draft.Keys = result.Keys;
-        if (result.Complete) { capturing = false; recorder = null; recordingDraft = null; CaptureButton.Content = "Record"; vm.Log("Keys recorded. Save the rule."); }
+        if (result.Complete) { capturing = false; recorder = null; recordingDraft = null; CaptureButton.Content = L.T("Record"); vm.Log(L.T("Keys recorded. Save the rule.")); }
     }
     private void CancelRecording()
     {
         if (!capturing) return;
         if (recordingDraft is not null) recordingDraft.Keys = originalKeys;
-        capturing = false; recorder = null; recordingDraft = null; CaptureButton.Content = "Record";
+        capturing = false; recorder = null; recordingDraft = null; CaptureButton.Content = L.T("Record");
     }
     private async void Import(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog { Filter = "Rule profile (*.json)|*.json" };
         if (dialog.ShowDialog(this) != true) return;
         try { var profile = ProfileStore.Load(dialog.FileName); await vm.ImportProfileAsync(profile); }
-        catch (Exception ex) { vm.Log($"Import failed: {ex.Message}"); }
+        catch (Exception ex) { vm.Log(L.F($"Import failed: {ex.Message}")); }
     }
     private void Export(object sender, RoutedEventArgs e)
     {
         var dialog = new SaveFileDialog { Filter = "Rule profile (*.json)|*.json", FileName = "lovense-profile.json" };
         if (dialog.ShowDialog(this) != true) return;
-        try { ProfileStore.Save(vm.GetProfile(), dialog.FileName); vm.Log("Profile exported."); }
-        catch (Exception ex) { vm.Log($"Export failed: {ex.Message}"); }
+        try { ProfileStore.Save(vm.GetProfile(), dialog.FileName); vm.Log(L.T("Profile exported.")); }
+        catch (Exception ex) { vm.Log(L.F($"Export failed: {ex.Message}")); }
     }
     private async void OnClosing(object? sender, CancelEventArgs e)
     {
@@ -196,7 +210,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             vm.Log($"Shutdown: {ex.Message}");
-            if (restartForUpdate) MessageBox.Show(this, "The update could not be started. Reopen the app to retry.\n\n" + ex.Message, "App update", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (restartForUpdate) MessageBox.Show(this, L.T("The update could not be started. Reopen the app to retry.\n\n") + ex.Message, L.T("App update"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally { closed = true; Close(); }
     }

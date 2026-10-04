@@ -11,6 +11,7 @@
     <ApplicationDefinition Remove="App.xaml" />
     <Page Include="App.xaml" />
     <PackageReference Include="Velopack" Version="1.2.161" />
+    <EmbeddedResource Include="Localization/ru.json" LogicalName="Localization.ru.json" />
     <EmbeddedResource Include="../../KEYBOARD_AI_RULES.md" LogicalName="KeyboardAiInstructions.md" />
     <EmbeddedResource Include="../../MOUSE_AI_RULES.md" LogicalName="MouseAiInstructions.md" />
     <Content Include="../../examples/mouse-assignments.json" Link="examples/mouse-assignments.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

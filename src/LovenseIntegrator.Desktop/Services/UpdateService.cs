@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -28,13 +29,14 @@ public sealed class UpdateService : INotifyPropertyChanged, IAsyncDisposable
     private int progress;
     public event PropertyChangedEventHandler? PropertyChanged;
     public string Version => backend.Version;
+    public string VersionLabel => L.F($"Installed version: {Version}");
     public string Status => status;
     public string PreferenceError => preferenceError;
     public int Progress => progress;
     public bool Busy => busy;
     public bool CanCheck => backend.IsInstalled && !busy && !disposed;
     public bool CanRestart => backend.PendingVersion is not null && !busy && !disposed;
-    public string TabTitle => backend.PendingVersion is not null ? "  Updates • ready  " : "  Updates  ";
+    public string TabTitle => backend.PendingVersion is not null ? L.T("  Updates • ready  ") : L.T("  Updates  ");
     public bool Automatic
     {
         get => automatic;
@@ -50,7 +52,7 @@ public sealed class UpdateService : INotifyPropertyChanged, IAsyncDisposable
                 preferenceError = "";
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            { preferenceError = "Could not save update preferences: " + ex.Message; }
+            { preferenceError = L.T("Could not save update preferences: ") + ex.Message; }
             Changed(); Changed(nameof(PreferenceError));
             if (value) _ = CheckAsync();
         }
@@ -63,10 +65,10 @@ public sealed class UpdateService : INotifyPropertyChanged, IAsyncDisposable
             if (File.Exists(preferencesPath)) automatic = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(preferencesPath))?.Automatic ?? true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
-        { preferenceError = "Update preferences could not be read; automatic checks are enabled."; }
-        SetStatus(!backend.IsInstalled ? "Development build. Install the GitHub release to enable updates."
-            : backend.PendingVersion is { } pending ? $"Version {pending} is ready. Restart to update."
-            : "Updates come from GitHub Releases (stable Windows x64).");
+        { preferenceError = L.T("Update preferences could not be read; automatic checks are enabled."); }
+        SetStatus(!backend.IsInstalled ? L.T("Development build. Install the GitHub release to enable updates.")
+            : backend.PendingVersion is { } pending ? L.F($"Version {pending} is ready. Restart to update.")
+            : L.T("Updates come from GitHub Releases (stable Windows x64)."));
     }
     public void Start() => loop ??= RunAsync();
     private async Task RunAsync()
@@ -95,23 +97,23 @@ public sealed class UpdateService : INotifyPropertyChanged, IAsyncDisposable
         timeout.CancelAfter(TimeSpan.FromMinutes(10));
         try
         {
-            SetStatus("Checking GitHub Releases…");
+            SetStatus(L.T("Checking GitHub Releases…"));
             var version = await backend.CheckAsync(timeout.Token);
             if (version is null)
             {
-                SetStatus(backend.PendingVersion is { } pending ? $"Version {pending} is ready. Restart to update." : "You are up to date.");
+                SetStatus(backend.PendingVersion is { } pending ? L.F($"Version {pending} is ready. Restart to update.") : L.T("You are up to date."));
                 return;
             }
-            SetStatus($"Downloading version {version}…");
+            SetStatus(L.F($"Downloading version {version}…"));
             var reporter = new Progress<int>(value => { if (!disposed && busy) { progress = Math.Clamp(value, 0, 100); Changed(nameof(Progress)); } });
             await backend.DownloadAsync(((IProgress<int>)reporter).Report, timeout.Token);
             progress = 100;
-            SetStatus($"Version {version} is ready. It will be installed the next time you start the app.");
+            SetStatus(L.F($"Version {version} is ready. It will be installed the next time you start the app."));
         }
         catch (OperationCanceledException)
-        { if (!disposed) SetStatus("Update timed out. Check your connection and try again."); }
+        { if (!disposed) SetStatus(L.T("Update timed out. Check your connection and try again.")); }
         catch (Exception ex)
-        { SetStatus("Update unavailable. You can keep using the app and retry. " + ex.Message); }
+        { SetStatus(L.T("Update unavailable. You can keep using the app and retry. ") + ex.Message); }
         finally { busy = false; Refresh(); }
     }
     // The window must await transport shutdown before calling this.

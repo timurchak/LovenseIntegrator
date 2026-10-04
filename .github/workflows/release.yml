@@ -63,4 +63,6 @@ jobs:
             artifacts/installer/**/before.json
             artifacts/installer/**/after.json
             artifacts/installer/**/corrupt.json
+            artifacts/installer/**/reinstalled.json
+            artifacts/installer/**/*.log
           retention-days: 14

@@ -30,6 +30,11 @@ try {
     if (Test-Path -LiteralPath $notes) { $packArgs += @('--releaseNotes', $notes) }
     & $dotnetCommand tool run vpk -- @packArgs
     if ($LASTEXITCODE -ne 0) { throw 'Installer packaging failed.' }
+    # Replace the one-click EXE with a wizard, preserving Velopack's asset filename and update feed.
+    $setup = Join-Path $OutputDirectory 'LovenseIntegratorApp-win-Setup.exe'
+    $bootstrapper = Join-Path $publishDirectory 'Velopack-Setup.exe'
+    Move-Item -LiteralPath $setup -Destination $bootstrapper
+    & (Join-Path $PSScriptRoot 'Wrap-Installer.ps1') -Bootstrapper $bootstrapper -OutputDirectory $OutputDirectory -Version $Version
     Write-Output "Installer and update feed: $OutputDirectory"
 }
 finally { Pop-Location }

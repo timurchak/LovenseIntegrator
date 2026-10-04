@@ -1,3 +1,4 @@
+using LovenseIntegrator.Desktop.Localization;
 using System.Windows;
 using System.IO;
 using System.Text.Json;
@@ -21,7 +22,7 @@ public partial class App : Application
             if (instance is not null)
             {
                 try { owned = instance.WaitOne(0); } catch (AbandonedMutexException) { owned = true; }
-                if (!owned) { MessageBox.Show("Lovense Integrator is already running.", "Lovense Integrator"); return; }
+                if (!owned) { MessageBox.Show(L.T("Lovense Integrator is already running."), "Lovense Integrator"); return; }
             }
             Velopack.VelopackApp.Build().SetAutoApplyOnStartup(!diagnostic && !hook).Run();
             var app = new App();
@@ -53,11 +54,13 @@ public partial class App : Application
         }
         if (e.Args.Contains("--ui-harness"))
         {
+            var languageIndex = Array.IndexOf(e.Args, "--language");
+            L.SetLanguage(languageIndex >= 0 ? e.Args[languageIndex + 1] : "en");
             var cultureIndex = Array.IndexOf(e.Args, "--culture");
             var culture = System.Globalization.CultureInfo.GetCultureInfo(cultureIndex >= 0 ? e.Args[cultureIndex + 1] : "en-US");
             System.Globalization.CultureInfo.CurrentCulture = culture;
             System.Globalization.CultureInfo.CurrentUICulture = culture;
-            var directory = Path.GetFullPath(Path.Combine("artifacts", "ui-harness", culture.Name));
+            var directory = Path.GetFullPath(Path.Combine("artifacts", "ui-harness", L.Language, culture.Name));
             Directory.CreateDirectory(directory);
             ProfileStore.OverridePath = Path.Combine(directory, "profile.json");
             ProfileStore.Save(ProfileStore.Defaults());
@@ -120,6 +123,7 @@ public partial class App : Application
             catch (Exception ex) { File.WriteAllText(Path.Combine(directory, "ui-smoke.txt"), ex.ToString()); Shutdown(1); }
             return;
         }
+        L.SetLanguage(LanguagePreferences.Read(Path.Combine(Path.GetDirectoryName(ProfileStore.PathName)!, "settings.json")));
         MainWindow = new MainWindow(e.Args.Contains("--bluetooth") ? 1 : 0); MainWindow.Show();
     }
 }

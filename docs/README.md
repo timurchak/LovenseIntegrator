@@ -9,6 +9,7 @@ Entry point for future sessions. This knowledge snapshot was prepared on 2026-10
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Source map, event flow and responsibilities |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Build, test, publish, launch and diagnostic artifacts |
 | [RELEASING.md](RELEASING.md) | Windows installer, GitHub releases, auto-updates and upgrade verification |
+| [LOCALIZATION.md](LOCALIZATION.md) | English/Russian UI, preferences, catalog and preservation boundaries |
 | [BLUETOOTH.md](BLUETOOTH.md) | Standard adapters, multiple devices, SDK crash findings and limits |
 | [RULES_AND_PROFILES.md](RULES_AND_PROFILES.md) | Rules, haptic feedback, data formats, migrations and UI |
 

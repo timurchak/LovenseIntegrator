@@ -6,11 +6,11 @@ For development and future sessions, start with [AGENTS.md](AGENTS.md) and [proj
 
 ## Run
 
-Download **LovenseIntegratorApp-win-Setup.exe** from [GitHub Releases](https://github.com/timurchak/LovenseIntegrator/releases/latest) and run it. Windows 10/11 x64 is required. Installation is per user, includes .NET and adds Start menu/desktop shortcuts. The current installer is unsigned; Windows may show a SmartScreen prompt.
+Download **LovenseIntegratorApp-win-Setup.exe** from [GitHub Releases](https://github.com/timurchak/LovenseIntegrator/releases/latest) and run it. The wizard lets you choose a folder, review the changes, then follow installation progress. Windows 10/11 x64 is required. Installation is per user, includes .NET and adds Start menu/desktop shortcuts. Launching the app from the final page is optional. The current installer is unsigned; Windows may show a SmartScreen prompt.
 
-The **Updates** tab checks stable GitHub releases, downloads updates in the background and offers **Restart to update**. Automatic checks run 10 seconds after startup and every six hours; they can be disabled. Downloaded updates apply on the next launch. Restart stops effects and disconnects devices first; rules stay paused afterward. Profiles remain in `%LOCALAPPDATA%\LovenseIntegrator`, separate from installed files in `%LOCALAPPDATA%\LovenseIntegratorApp`.
+The **Updates** tab checks stable GitHub releases, downloads updates in the background and offers **Restart to update**. Automatic checks run 10 seconds after startup and every six hours; they can be disabled. Downloaded updates apply on the next launch. Restart stops effects and disconnects devices first; rules stay paused afterward. Profiles remain in `%LOCALAPPDATA%\LovenseIntegrator`, separate from the installation folder (default `%LOCALAPPDATA%\LovenseIntegratorApp`). To move an existing installation, uninstall it through Windows Settings first, then run the wizard and choose the new folder. Uninstall preserves profiles.
 
-The self-contained local build is `dist/win-x64/LovenseIntegrator.exe`; no installed .NET runtime is required. A normal launch starts in demo mode with rules paused. The interface is English; existing user-authored rule names are preserved.
+The self-contained local build is `dist/win-x64/LovenseIntegrator.exe`; no installed .NET runtime is required. A normal launch starts in demo mode with rules paused. Choose **English** or **Русский** in **Settings → App language**, click **Save language**, then restart when convenient. English is the default. Rule names, physical key codes and JSON contracts remain unchanged. AI instructions and low-level diagnostic messages remain in English.
 
 1. Select **Bluetooth (direct connection)**.
 2. Turn on the toy and release its connection from your phone or another application.
