@@ -12,12 +12,14 @@ Entry point for future sessions. This knowledge snapshot was prepared on 2026-10
 | [LOCALIZATION.md](LOCALIZATION.md) | English/Russian UI, preferences, catalog and preservation boundaries |
 | [BLUETOOTH.md](BLUETOOTH.md) | Standard adapters, multiple devices, SDK crash findings and limits |
 | [RULES_AND_PROFILES.md](RULES_AND_PROFILES.md) | Rules, haptic feedback, data formats, migrations and UI |
+| [SCREEN.md](SCREEN.md) | WoW Screen mode, semantic events, color protocol and safety |
 
 Existing detailed references:
 
 - [Application README](../README.md): features and user workflows.
 - [Keyboard AI instructions](../KEYBOARD_AI_RULES.md) and [JSON example](../examples/keyboard-assignments.json).
 - [Mouse AI instructions](../MOUSE_AI_RULES.md) and [JSON example](../examples/mouse-assignments.json).
+- [Screen AI instructions](../SCREEN_AI_RULES.md) and [JSON example](../examples/screen-assignments.json).
 - [Discord research](../DISCORD_INTEGRATION.md): retained findings for a **cancelled** integration.
 - [TRIGGER_IDEAS.md](../TRIGGER_IDEAS.md): possible future directions, not an implemented catalog.
 

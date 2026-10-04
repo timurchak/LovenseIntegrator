@@ -17,6 +17,10 @@ public sealed class RuleEditor : INotifyPropertyChanged
     public bool Enabled { get => model.Enabled; set { model.Enabled = value; Notify(); } }
     public EventKind Event { get => model.Event; set { model.Event = value; Notify(); } }
     public string Keys { get => model.Keys; set { if (value is null) return; model.Keys = value; Notify(); } }
+    public string ScreenEventId { get => model.ScreenEventId; set { if (value is null) return; model.ScreenEventId = value; Notify(); } }
+    public bool ShowScreen => Event == EventKind.ScreenEvent;
+    public string ScreenHelp => L.T(ScreenEvents.Find(ScreenEventId)?.Description ?? "");
+    public IReadOnlyList<Choice<string>> ScreenEventsList => ScreenEvents.All.Where(e => e.Id != "wow.test").Select(e => new Choice<string>(e.Id, L.T(e.Name))).ToArray();
     public double Threshold
     {
         get => model.Threshold;

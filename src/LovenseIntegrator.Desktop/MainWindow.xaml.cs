@@ -36,6 +36,8 @@ public partial class MainWindow : Window
         if (ProfileStore.OverridePath is null) Loaded += (_, _) => updates.Start();
         KeyboardMode.Initialize(vm);
         MouseMode.Initialize(vm);
+        ScreenMode.Initialize(vm);
+        if (Environment.GetCommandLineArgs().Contains("--screen")) Modes.SelectedItem = ScreenTab;
         if (Environment.GetCommandLineArgs().Contains("--mouse")) Modes.SelectedItem = MouseTab;
         vm.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(MainViewModel.Draft) && capturing && !ReferenceEquals(recordingDraft, vm.Draft)) CancelRecording(); };
         vm.PropertyChanged += (_, args) =>

@@ -123,7 +123,7 @@ public partial class MainWindow
                 checks += new EventPickerWindow(EventKind.KeyDown).VerifyHarness();
                 return Task.CompletedTask;
             });
-            await Group("All 441 event transitions and action bindings", async () =>
+            await Group("All event transitions and action bindings", async () =>
             {
                 foreach (var source in Enum.GetValues<EventKind>())
                     foreach (var target in Enum.GetValues<EventKind>())
@@ -418,6 +418,89 @@ public partial class MainWindow
                 settingsBitmap.Render(bg); settingsBitmap.Render(content);
                 var settingsEncoder = new PngBitmapEncoder(); settingsEncoder.Frames.Add(BitmapFrame.Create(settingsBitmap));
                 using var settingsFile = File.Create(Path.Combine(directory, "mouse-mode-settings.png")); settingsEncoder.Save(settingsFile);
+            });
+            await Group("Screen assignments, imports, preview and localization", async () =>
+            {
+                var beforeScreen = vm.GetProfile();
+                Modes.SelectedItem = ScreenTab; ScreenMode.Language = Language; await Layout();
+                Check(!vm.Screen.Monitoring && !vm.Running, "Screen startup does not capture or enable rules");
+                Check(vm.Screen.Events.Count == 13 && vm.Screen.Events.All(e => e.Value != "wow.test"), "Screen semantic catalog excludes diagnostic test");
+                var eventSelector = (ComboBox)ScreenMode.FindName("EventSelector");
+                var save = (Button)ScreenMode.FindName("SaveAssignmentButton");
+                vm.Screen.New(); vm.Screen.Draft.Name = "Harness Screen assignment";
+                eventSelector.SelectedValue = "wow.player.damage"; await Layout();
+                Check(vm.Screen.Draft.ScreenEventId == "wow.player.damage" && vm.Screen.Draft.ScreenHelp.Length > 0, "Screen localized selector stores stable semantic ID");
+                vm.Screen.Draft.DurationMilliseconds = 150; vm.Screen.Draft.CooldownSeconds = 0.3;
+                save.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)); await Layout();
+                var saved = vm.Screen.Assignments.Single();
+                Check(saved.DurationSeconds == 0.15 && saved.CooldownMs == 300 && !vm.AutomationRules.Contains(saved), "Screen save uses correct units and dedicated list");
+                vm.Screen.Draft.Name = "Edited Screen name"; save.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)); await Layout();
+                Check(vm.Screen.Assignments.Count == 1 && vm.Screen.Assignments[0].Id == saved.Id, "Screen edit preserves stable ID");
+                var path = Path.Combine(directory, "screen-export.json"); ScreenPresetStore.Save(path, vm.Screen.Assignments);
+                var preset = ScreenPresetStore.Parse(File.ReadAllText(path));
+                await vm.ImportScreenAsync(preset); await vm.ImportScreenAsync(preset); await Layout();
+                Check(vm.Screen.Assignments.Count == 1 && !vm.Running && File.Exists(ProfileStore.PathName + ".before-screen-import.bak"), "Screen import is idempotent, backed up and paused");
+                Check(beforeScreen.Rules.All(r => Snapshot(r) == Snapshot(vm.Rules.Single(x => x.Id == r.Id))), "Screen import preserves all other modes");
+                vm.Screen.Selected = vm.Screen.Assignments[0];
+                var packets = new[] { new ScreenPacket(1, 0, 0, 0, 0, 0), new ScreenPacket(1, 0, 0, 0, 0, 1), new ScreenPacket(1, 1, 14, 1, 0, 2), new ScreenPacket(1, 1, 14, 1, 0, 2) };
+                var time = 0L;
+                foreach (var packet in packets)
+                {
+                    var bytes = ScreenProtocol.Encode(packet); var pixels = new byte[32 * 32 * 4];
+                    for (var y = 0; y < 32; y++) for (var x = 0; x < 32; x++) for (var c = 0; c < 3; c++)
+                    {
+                        var bit = (y / 4 * 8 + x / 4) * 3 + c;
+                        pixels[(y * 32 + x) * 4 + 2 - c] = (bytes[bit / 8] & (1 << (7 - bit % 8))) != 0 ? (byte)255 : (byte)0;
+                    }
+                    vm.Screen.ApplySample(new(pixels, "", "Wow"), packet, time += 100, 4);
+                }
+                Check(vm.Screen.Preview is not null && vm.Screen.RecentEvents.Count == 1 && !vm.Running, "Screen test packet updates preview without an action");
+                Check(vm.Screen.RecentEvents[0].Contains(L.T("Test signal")) && vm.Screen.Status == L.T("Connected to WowScreenEvents."), "Screen status and observed event localized");
+                // Arm only the demo VM, bypassing global input hooks for this source lifecycle test.
+                typeof(MainViewModel).GetProperty(nameof(MainViewModel.Running))!.SetValue(vm, true);
+                var focus = WindowsInput.ForegroundProcess();
+                var stamp = Environment.TickCount64;
+                var journalCount = vm.Journal.Count;
+                var test = new ScreenPacket(1, 2, 3, 1, 0, 3);
+                vm.Screen.ApplySample(new(new byte[4096], "", focus), test, stamp, 4);
+                vm.Screen.ApplySample(new(new byte[4096], "", focus), test, stamp + 1, 4);
+                Check(vm.Running && vm.Journal.Count == journalCount, "Screen test-flagged real event cannot dispatch while rules are enabled");
+                vm.Screen.ApplySample(new(null, "Waiting for World of Warcraft in the foreground."), null, stamp + 2, 4);
+                await Layout();
+                Check(!vm.Running && vm.Journal.Any(j => j.Contains(L.T("Screen signal lost. Rules are paused; enable them manually after recovery."))), "Screen focus loss stops and pauses the active demo session");
+                vm.Screen.ApplySample(new(new byte[4096], "", focus), test, stamp + 3, 4);
+                vm.Screen.ApplySample(new(new byte[4096], "", focus), test with { Heartbeat = 4 }, stamp + 103, 4);
+                Check(!vm.Running, "Screen recovery never reenables rules");
+                await using (var simulatedReader = new ScreenModeViewModel(vm, (_, _, _) => new(null, "Screen capture failed.")))
+                {
+                    for (var cycle = 0; cycle < 5; cycle++)
+                    {
+                        await simulatedReader.ToggleMonitoringAsync();
+                        var stopping = simulatedReader.StopMonitoringAsync();
+                        if (!stopping.IsCompleted) await simulatedReader.ToggleMonitoringAsync();
+                        await stopping;
+                        Check(!simulatedReader.Monitoring && simulatedReader.CanToggle, "Screen reader cancellation/reentry cycle " + cycle);
+                    }
+                }
+                using (var guide = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("ScreenAiInstructions.md")) Check(guide is not null, "Screen AI guide embedded");
+                Check(ScreenPresetStore.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "examples/screen-assignments.json"))).Rules.Count == 1, "Screen example shipped and valid");
+                foreach (var (width, height) in new[] { (1360, 900), (1120, 720) })
+                {
+                    await Layout(width, height);
+                    var scroll = Descendants<ScrollViewer>(ScreenMode).First(); scroll.ScrollToTop(); await Layout(width, height);
+                    var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                    var bg = new DrawingVisual(); using (var dc = bg.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, width, height));
+                    bitmap.Render(bg); bitmap.Render(content); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using (var file = File.Create(Path.Combine(directory, $"screen-mode-{width}.png"))) encoder.Save(file);
+                    scroll.ScrollToEnd(); await Layout(width, height);
+                    var bounds = save.TransformToAncestor(content).TransformBounds(new Rect(save.RenderSize));
+                    Check(bounds.Top >= 0 && bounds.Bottom <= height && bounds.Right <= width, "Screen save reachable by scrolling at " + width);
+                    Check(scroll.ScrollableWidth == 0, "Screen has no horizontal overflow at " + width);
+                    var settings = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                    settings.Render(bg); settings.Render(content); var settingsEncoder = new PngBitmapEncoder(); settingsEncoder.Frames.Add(BitmapFrame.Create(settings));
+                    using (var file = File.Create(Path.Combine(directory, $"screen-settings-{width}.png"))) settingsEncoder.Save(file);
+                }
+                vm.SetProfile(beforeScreen); vm.Screen.New();
             });
             File.WriteAllText(Path.Combine(directory, "report.json"), JsonSerializer.Serialize(new { Result = "PASS", Language = L.Language, Culture = CultureInfo.CurrentCulture.Name, Checks = checks, Groups = groups,
                 Scope = "Real offscreen WPF controls/bindings/routed events; demo transport; no global hooks or live hardware; scaled raster output, not monitor DPI switching." }, new JsonSerializerOptions { WriteIndented = true }));

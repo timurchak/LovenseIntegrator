@@ -36,7 +36,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     private bool observeOnly;
     public event PropertyChangedEventHandler? PropertyChanged;
     public ObservableCollection<Rule> Rules { get; } = [];
-    public IReadOnlyList<Rule> AutomationRules => Rules.Where(r => !r.KeyboardLayer && !r.MouseLayer).ToArray();
+    public ScreenModeViewModel Screen { get; }
+    public IReadOnlyList<Rule> AutomationRules => Rules.Where(r => !r.KeyboardLayer && !r.MouseLayer && r.Event != EventKind.ScreenEvent).ToArray();
     public ObservableCollection<Toy> Toys { get; } = [];
     public IReadOnlyList<Toy> Targets => new[] { new Toy("", L.T("All connected"), true) }.Concat(Toys)
         .Concat(Draft.ToyId.Length > 0 && !Toys.Any(t => t.Id == Draft.ToyId) ? [new Toy(Draft.ToyId, L.T("Unavailable toy from profile"), false)] : Array.Empty<Toy>()).ToArray();
@@ -77,6 +78,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     public string EventHelp => Draft.EventHelp;
     public MainViewModel(int initialTransport = 0, Func<int, string, IToyTransport>? transportFactory = null)
     {
+        Screen = new(this);
         createTransport = transportFactory ?? ((index, url) => index switch { 1 => new IsolatedBleTransport(), 2 => new LocalApiTransport(url), _ => new DemoTransport() });
         Rules.CollectionChanged += (_, _) => Changed(nameof(AutomationRules));
         TransportIndex = initialTransport;
@@ -180,9 +182,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     {
         if (Running) { await StopAsync(); return; }
         if (Busy) { Log(L.T("Wait for the connection to finish.")); return; }
+        if (Rules.Any(r => r.Enabled && r.Event == EventKind.ScreenEvent) && !Screen.Monitoring) { Log(L.T("Start reading in Screen mode before enabling Screen rules.")); return; }
         try
         {
-            engine.Reset(Environment.TickCount64); input.Start(); Running = true; timer.Start();
+            Screen.ResetBaseline(); engine.Reset(Environment.TickCount64); input.Start(); Running = true; timer.Start();
             Log(L.T("Rules enabled. Input is processed locally; typed text is not stored."));
         }
         catch (Exception ex) { Log(L.F($"Could not enable events: {ex.Message}")); }
@@ -204,6 +207,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     }
     private void Pause()
     {
+        Screen.ResetBaseline();
         Running = false; input.Stop(); timer.Stop(); engine.Reset(Environment.TickCount64);
         Interlocked.Increment(ref generation);
     }
@@ -288,10 +292,45 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
         finally { sending = false; transportGate.Release(); }
     }
     public Profile GetProfile() => new() { ApiUrl = ApiUrl, Rules = Rules.Select(r => r.Copy()).ToList() };
+    public void SaveScreenRule(Rule rule)
+    {
+        if (rule.Event != EventKind.ScreenEvent || rule.Validate() is { }) throw new ArgumentException(rule.Validate() ?? "Not a Screen assignment.");
+        var index = Rules.ToList().FindIndex(r => r.Id == rule.Id);
+        if (index >= 0 && Rules[index].Event != EventKind.ScreenEvent) throw new ArgumentException("Rule ID belongs to another mode.");
+        if (index < 0) Rules.Add(rule.Copy()); else Rules[index] = rule.Copy();
+        engine.Reset(Environment.TickCount64); Screen.ResetBaseline(); Persist(); Log(L.F($"Assignment «{rule.Name}» saved."));
+    }
+    public void RemoveScreenRule(Guid id)
+    {
+        var rule = Rules.FirstOrDefault(r => r.Id == id && r.Event == EventKind.ScreenEvent);
+        if (rule is null) return;
+        Rules.Remove(rule); engine.Reset(Environment.TickCount64); Screen.ResetBaseline(); Persist();
+    }
+    internal void ReceiveScreen(InputEvent value)
+    {
+        if (!Running || closing || Environment.TickCount64 - value.AtMs > 250 || !WindowsInput.ForegroundProcess().Equals(value.Process, StringComparison.OrdinalIgnoreCase)) return;
+        var match = engine.Process(value, Rules);
+        if (match is not null) _ = FireAsync(match);
+    }
+    internal async Task ScreenLostAsync()
+    {
+        if (!Running || !Rules.Any(r => r.Enabled && r.Event == EventKind.ScreenEvent)) return;
+        await StopAsync(); Log(L.T("Screen signal lost. Rules are paused; enable them manually after recovery."));
+    }
+    public async Task ImportScreenAsync(ScreenPreset preset)
+    {
+        ScreenPresetStore.Validate(preset.Rules);
+        var next = new Profile { ApiUrl = ApiUrl, Rules = ScreenPresetStore.Merge(Rules, preset.Rules) };
+        await StopAsync();
+        if (System.IO.File.Exists(ProfileStore.PathName)) System.IO.File.Copy(ProfileStore.PathName, ProfileStore.PathName + ".before-screen-import.bak", true);
+        ProfileStore.Save(next); SetProfile(next); canSave = true;
+        Screen.New(); Log(L.T("Screen assignments imported. Other modes preserved. Rules are paused."));
+    }
     private string lastWheelLogId = "";
     private long lastWheelLogAt;
     public void SetProfile(Profile profile)
     {
+        Screen.ResetBaseline();
         Rules.Clear(); foreach (var rule in profile.Rules) Rules.Add(rule);
         ApiUrl = profile.ApiUrl; SelectedRule = AutomationRules.FirstOrDefault();
         engine.Reset(Environment.TickCount64);
@@ -330,7 +369,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         if (closing) return;
-        closing = true; discoveryLifetime.Cancel(); await StopAsync(); input.Dispose();
+        closing = true; discoveryLifetime.Cancel(); await StopAsync(); await Screen.DisposeAsync(); input.Dispose();
         await transportGate.WaitAsync();
         try { await transport.DisposeAsync(); } finally { transportGate.Release(); discoveryLifetime.Dispose(); }
     }

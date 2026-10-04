@@ -11,5 +11,6 @@
   <Compile Include="../../src/LovenseIntegrator.Desktop/Services/ProfileStore.cs" Link="ProfileStore.cs"/>
   <Compile Include="../../src/LovenseIntegrator.Desktop/Services/KeyboardPresetStore.cs" Link="KeyboardPresetStore.cs"/>
   <Compile Include="../../src/LovenseIntegrator.Desktop/Services/MousePresetStore.cs" Link="MousePresetStore.cs"/>
+  <Compile Include="../../src/LovenseIntegrator.Desktop/Services/ScreenPresetStore.cs" Link="ScreenPresetStore.cs"/>
  </ItemGroup>
 </Project>

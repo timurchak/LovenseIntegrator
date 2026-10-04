@@ -17,7 +17,7 @@ The user authorized initializing Git and publishing to `git@github.com:timurchak
 - Windows first; initial devices are Lush and Ferri, using a standard Bluetooth adapter without the official dongle.
 - Prioritize clear visual keyboard/mouse modes, multiple/all input selection, exclusions, window-specific effects and responsive feedback.
 - Preserve per-mode import/export and embedded AI instructions.
-- Screen-region recognition is a later stage and is not implemented.
+- Screen mode reads the WowScreenEvents color protocol from the foreground WoW client. See docs/SCREEN.md. Generic template recognition and OCR remain deferred.
 - Discord was cancelled: Windows system notifications and a visible server bot do not suit the user. Do not resume that integration without a new request.
 - `TRIGGER_IDEAS.md` is an idea bank, not a list of implemented features or authorization to implement everything.
 

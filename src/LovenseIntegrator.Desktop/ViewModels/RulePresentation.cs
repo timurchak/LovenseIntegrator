@@ -16,6 +16,7 @@ public static class RulePresentation
 {
     public static IReadOnlyList<EventOption> Events { get; } =
     [
+        new(EventKind.ScreenEvent, L.T("Game event from screen"), L.T("Screen"), L.T("A named event from WowScreenEvents. Start reading in Screen mode first.")),
         new(EventKind.KeyDown, L.T("Key press"), L.T("Keyboard"), L.T("Triggers on a physical key press. Holding a key does not count as repeated presses."), true),
         new(EventKind.KeyUp, L.T("Key release"), L.T("Keyboard"), L.T("Triggers when you release the selected key."), true),
         new(EventKind.KeyHeld, L.T("Key held"), L.T("Keyboard"), L.T("Triggers once when a key has been held long enough. Release it to trigger again."), true, true, false, true),
@@ -54,6 +55,7 @@ public static class RulePresentation
         var time = Number(r.Threshold / 1000);
         var when = r.Event switch
         {
+            EventKind.ScreenEvent => L.T(ScreenEvents.Find(r.ScreenEventId)?.Name ?? r.ScreenEventId),
             EventKind.KeyDown => L.F($"pressed: {keys}"), EventKind.KeyUp => L.F($"released: {keys}"), EventKind.KeyHeld => L.F($"{keys} held for {time} s"),
             EventKind.KeyReleasedAfterHold => L.F($"{keys} released after {time} s"),
             EventKind.DoublePress => L.F($"double press of {keys} within {time} s"), EventKind.TriplePress => L.F($"triple press of {keys} within {time} s"),

@@ -33,7 +33,7 @@ For an installable build use `./scripts/Package.ps1`, then `./scripts/Test-Insta
 | Physical BLE scan/connect/refresh | Separate hardware check below | Requires available devices; demo does not prove radio behavior |
 | Documentation only | Check links, paths and source contracts | No application/motor restart needed |
 
-The UI harness covers all 441 transitions among 21 event types, dynamic fields, recipes, stable IDs, keyboard capture, import, numeric input and visual keyboard/mouse modes. It renders normal/minimum windows and 100/125/150/200% raster scales. It uses real WPF controls, bindings and routed events offscreen, with demo transport and separate profiles. It does not reproduce global OS input, monitor DPI switching or motor behavior. Both English and Russian interfaces are checked under ru-RU and en-US numeric cultures; reports are in `artifacts/ui-harness/<language>/<culture>/`. See [LOCALIZATION.md](LOCALIZATION.md).
+The UI harness covers all 484 transitions among 22 event types, dynamic fields, recipes, stable IDs, keyboard capture, import, numeric input and keyboard/mouse/Screen modes. Screen checks include semantic IDs, profile isolation, test-packet suppression while armed, pause on focus loss, no automatic recovery and cancellation/reentry. It renders normal/minimum windows and 100/125/150/200% raster scales. It uses real WPF controls, bindings and routed events offscreen, with demo transport and separate profiles. It does not reproduce global OS input, monitor DPI switching or motor behavior. Both English and Russian interfaces are checked under ru-RU and en-US numeric cultures; reports are in `artifacts/ui-harness/<language>/<culture>/`. See [LOCALIZATION.md](LOCALIZATION.md).
 
 BLE recovery harness starts an actual child process using DemoTransport. It checks two devices, refresh without worker replacement, selection retention, command IPC, forced worker exit, live UI/paused rules, profile preservation, reconnect and transport switching. The baseline is 9 checks. Positive commands in this harness affect demo devices only.
 
@@ -59,6 +59,8 @@ Start-Process -FilePath "$PWD\dist\win-x64\LovenseIntegrator.exe" -WorkingDirect
 | None | Visible window, demo transport, rules paused |
 | `--bluetooth` | BLE window; VM creation starts discovery, rules stay paused |
 | `--mouse` | Opens the mouse tab |
+| `--screen` | Opens the Screen tab with capture stopped and rules paused |
+| `--screen-probe` | Hidden 10-second, default-region WoW capture diagnostic; writes only the block PNG and semantic results under artifacts/screen-probe; no profile, transport or update access |
 | `--connection-status` | Writes VM snapshots to `artifacts/connection-status.json` on Status/Busy changes |
 | `--ble-scan` | Real discovery/connection, battery query, Stop and worker shutdown; writes `artifacts/ble-scan.json` |
 | `--ble-scan --repeat-ble-scan` | Three searches in one worker; Rounds records its PID and both connections |

@@ -426,6 +426,7 @@ await using (multiConnect)
 }
 await UpdateTests.RunAsync(Check);
 LocalizationTests.Run(Check);
+ScreenTests.Run(Check);
 Console.WriteLine($"{passed} checks passed.");
 
 sealed class FakeHandler : HttpMessageHandler

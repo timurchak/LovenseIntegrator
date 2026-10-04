@@ -32,6 +32,7 @@ An alternative transport is **Lovense Remote (Local API)**. The documented PC en
 - Official `LovenseBLE_Lib.dll` discovery, connection and battery queries; automatic download and SHA-256 verification of the pinned SDK.
 - Local API GetToys, Function and Pattern, with endpoint/device selection and error handling.
 - Demo Lush/Ferri without physical commands.
+- Screen mode: WoW color-block capture and preview, named game events, event-to-effect assignments, import/export and AI instructions. See [setup](docs/SCREEN.md).
 - Visual **Keyboard** and **Mouse** modes with grouped selections, exclusions, presets, per-application/title conditions, import/export and embedded AI instructions.
 - **Other events** editor: when → where → action, searchable catalog, key recording, effect cards, sliders, graph and a readable rule description.
 - 21 event types and seven recipes: holds, double presses, typing rhythm, no-correction streak, activity resumed, interval timer and keyboard feedback. Recipes create drafts that must be saved.
@@ -112,7 +113,7 @@ This is a prototype. Current physical actions target vibration on Lush/Ferri; ot
 
 BLE sends levels without durations; the app runs stop timers and pulses. Stop delivery cannot be guaranteed after worker failure or radio loss. REST receives a bounded duration. Better acknowledgment handling, live connection-state synchronization and coordinated recovery remain future work.
 
-Screen recognition is a separate later stage: select a monitor region, preview, color/template detection, then OCR with stability/confidence thresholds and repeat suppression. Screen capture is not running. Other potential sources include pointer movement, richer window/process events, gamepad, audio, MIDI, schedules, files, local webhooks and device events. [TRIGGER_IDEAS.md](TRIGGER_IDEAS.md) catalogs possibilities, not implemented integrations.
+Screen mode reads named WoW events from the separate **WowScreenEvents** addon. It provides a live color-block preview, combat/event assignments, per-mode import/export and AI instructions. Default setup is X=0, Y=0, cell size 4 px; the addon accounts for WoW UI scale. Reading and enabling rules are separate actions; stale/lost signals pause rules without automatic recovery. Some combat/health events require data that WoW may hide. See [Screen setup and limitations](docs/SCREEN.md). Generic region selection, template matching and OCR remain deferred. [TRIGGER_IDEAS.md](TRIGGER_IDEAS.md) catalogs other possibilities, not implemented integrations.
 
 Discord was cancelled because Windows notifications and a visible server bot do not suit the user. [Research findings](DISCORD_INTEGRATION.md) remain for reference; no Discord connection or events are implemented.
 

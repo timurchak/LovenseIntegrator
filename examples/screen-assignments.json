@@ -1,0 +1,23 @@
+{
+  "Format": "LovenseIntegrator.Screen",
+  "Version": 1,
+  "Rules": [
+    {
+      "Id": "b8155fe2-2894-4e7a-bb89-c507485b4594",
+      "Name": "Damage received → short pulse",
+      "Enabled": true,
+      "Event": "ScreenEvent",
+      "ScreenEventId": "wow.player.damage",
+      "Keys": "",
+      "Action": "Vibrate",
+      "Intensity": 5,
+      "DurationSeconds": 0.15,
+      "PulseMs": 500,
+      "CooldownMs": 300,
+      "Priority": 0,
+      "ToyId": "",
+      "Process": "Wow",
+      "WindowTitleContains": ""
+    }
+  ]
+}

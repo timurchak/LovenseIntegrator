@@ -13,7 +13,7 @@ public partial class App : Application
     public static void Main(string[] args)
     {
         // A worker must never apply an update or relaunch as a visible application.
-        var diagnostic = args.Any(a => a is "--ble-worker" or "--ble-scan" or "--ble-check" or "--ble-recovery-harness" or "--ui-harness" or "--smoke" or "--update-harness");
+        var diagnostic = args.Any(a => a is "--ble-worker" or "--ble-scan" or "--ble-check" or "--ble-recovery-harness" or "--ui-harness" or "--smoke" or "--update-harness" or "--screen-probe");
         var hook = args.Any(a => a.StartsWith("--veloapp-", StringComparison.Ordinal));
         using var instance = !diagnostic && !hook ? new Mutex(false, @"Local\LovenseIntegrator.UI." + Environment.UserName) : null;
         var owned = false;
@@ -35,6 +35,12 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Contains("--screen-probe"))
+        {
+            try { Shutdown(await ScreenProbe.RunAsync() ? 0 : 1); }
+            catch (Exception ex) { Directory.CreateDirectory("artifacts/screen-probe"); File.WriteAllText("artifacts/screen-probe/failure.txt", ex.ToString()); Shutdown(1); }
+            return;
+        }
         if (e.Args.Contains("--update-harness"))
         {
             try { await UpdateHarness.RunAsync(e.Args); Shutdown(0); }

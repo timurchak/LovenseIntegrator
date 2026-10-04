@@ -2,7 +2,7 @@
 
 ## Events and time
 
-`EventKind` has 21 values: KeyDown, KeyUp, KeyHeld, DoublePress, Chord, Sequence, PressCount, TypingRateAbove, TypingRateBelow, InputIdle, MouseDown, MouseUp, MouseWheel, ForegroundChanged, Timer, KeyReleasedAfterHold, TriplePress, CleanTypingStreak, ActivityResumed, MouseDoubleClick and MouseHeld. Add values without changing existing identities; consider saved profiles and IPC.
+`EventKind` has 22 values: KeyDown, KeyUp, KeyHeld, DoublePress, Chord, Sequence, PressCount, TypingRateAbove, TypingRateBelow, InputIdle, MouseDown, MouseUp, MouseWheel, ForegroundChanged, Timer, KeyReleasedAfterHold, TriplePress, CleanTypingStreak, ActivityResumed, MouseDoubleClick, MouseHeld and ScreenEvent. ScreenEvent was appended, preserving all previous identities. Its semantic filter lives in `ScreenEventId`, never Keys. See [SCREEN.md](SCREEN.md).
 
 Windows autorepeat is not a new physical press. Holds/combinations trigger once until release. Typing speed uses a sliding window; below-threshold detection waits for the first full window. Backspace/Delete reset CleanTypingStreak; modifiers/arrows do not contribute. InputIdle includes keys, buttons and wheel events, not pointer movement.
 
@@ -41,12 +41,13 @@ For renewal, RuleMatch sets RenewalId to Rule.Id. BleTransport cancels/replaces 
 | Profile (`Version`, `ApiUrl`, `Rules`) | Writes v3; reads v1/v2/v3; full import replaces the profile |
 | `LovenseIntegrator.Keyboard` | v1, keyboard assignments only; merge by Id |
 | `LovenseIntegrator.Mouse` | v1, mouse assignments only; merge by Id |
+| `LovenseIntegrator.Screen` | v1, semantic Screen event assignments only; merge by Id |
 
 Profiles live at `%LOCALAPPDATA%\LovenseIntegrator\profile.json`. ProfileStore writes a temporary `.tmp` then replaces the file. Read errors must not silently overwrite a damaged profile with defaults: MainViewModel disables autosave until recovery or explicit import. Translating the application does not rewrite user-authored rule names.
 
 Preset import validates required, unknown and duplicate fields, UUIDs, input codes, ranges and Id conflicts with another event type. Do not assume full ProfileStore has the same strictness; it uses a separate, less restrictive deserializer. Validate the entire preset, prepare/persist the merged profile, then replace live rules. Missing assignments and other events are preserved; importing the same IDs twice does not create duplicates.
 
-Mode import creates `profile.json.before-keyboard-import.bak` or `profile.json.before-mouse-import.bak`. Each is a single replaceable backup, not a version history. Export uses saved rules rather than draft edits. Rules pause after import. Presets do not contain ApiUrl.
+Mode import creates `profile.json.before-keyboard-import.bak`, `profile.json.before-mouse-import.bak` or `profile.json.before-screen-import.bak`. Each is a single replaceable backup, not a version history. Export uses saved rules rather than draft edits. Rules pause after import. Presets do not contain ApiUrl.
 
 AI contracts: [keyboard](../KEYBOARD_AI_RULES.md), [mouse](../MOUSE_AI_RULES.md). Desktop.csproj embeds these files; the keyboard button appends the complete current key-code list. [Examples](../examples/keyboard-assignments.json) are checked by the harness. AI must preserve Id when editing an assignment and generate a new one for an independent assignment. Do not copy real Toy.Id values into shared examples.
 

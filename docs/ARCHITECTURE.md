@@ -12,6 +12,7 @@ Installation and updates use Velopack, bootstrapped in `App.Main` before WPF. `U
 | UI coordination | [MainViewModel.cs](../src/LovenseIntegrator.Desktop/ViewModels/MainViewModel.cs) | Profile, rules, pause, transport, dispatch, log, generation/gate |
 | Visual modes | [KeyboardModeViewModel.cs](../src/LovenseIntegrator.Desktop/ViewModels/KeyboardModeViewModel.cs), KeyboardModeView, MouseModeView | Shared `InputModeViewModel`, layout and assignments; the original filename remains |
 | Other events | MainWindow, EventPickerWindow, RuleEditor, RulePresentation, EffectPreview | Catalog, draft, recipes, description and effect graph |
+| Screen | ScreenProtocol, ScreenCapture, ScreenModeViewModel, ScreenModeView, ScreenPresetStore | WoW color packets, bounded pixel capture, liveness, semantic event assignments and mode import |
 | Profiles | ProfileStore, KeyboardPresetStore, MousePresetStore | Full profile, strict import bundles, merge by Id |
 | BLE IPC | [IsolatedBleTransport.cs](../src/LovenseIntegrator.Desktop/Transports/IsolatedBleTransport.cs) | Parent transport and BleWorkerHost in one file; named pipe |
 | Native BLE | [BleTransport.cs](../src/LovenseIntegrator.Desktop/Transports/BleTransport.cs) | SDK callbacks, scan, connections, battery, commands/timers |
@@ -41,3 +42,5 @@ Engine history resets on pause, connection and import. Hooks run only while rule
 - Duration, pulse sequencing and wheel renewal run in BleTransport. Local stop timers must not depend on WPF rendering.
 
 New event sources should normalize data for the engine and common executor, not bypass them to control motors directly. Define external-event data/filter contracts and profile compatibility first; do not store unrelated service IDs in key or process fields.
+
+Screen capture runs on a background periodic task; decoder/tracker output returns to Dispatcher through a revision gate. Preview continues while rules are paused, but enabling rules baselines the current signal. Dedicated `ScreenEventId` fields identify semantic events. Screen inputs cannot disturb keyboard hold latches or satisfy keyboard/time rules. Signal loss after a live session stops active rules; recovery never enables them. See [SCREEN.md](SCREEN.md).

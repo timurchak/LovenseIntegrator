@@ -20,7 +20,7 @@ Version lives in `Directory.Build.props`. Velopack is pinned to **1.2.161** in t
 ./scripts/Test-UiHarness.ps1
 ./scripts/Test-BleRecovery.ps1
 ./scripts/Package.ps1
-./scripts/Test-Installer.ps1 -ReleaseDirectory dist/releases/0.2.0
+./scripts/Test-Installer.ps1 -ReleaseDirectory dist/releases/0.3.0
 ```
 
 Package.ps1 publishes to a fresh staging folder and refuses a nonempty release output directory. To repeat packaging, choose a fresh `-OutputDirectory dist/release-check-2`. It creates a Setup EXE, full `.nupkg`, `releases.win.json`, legacy `RELEASES` and Velopack's `assets.win.json` upload manifest. Full packages are used initially; deltas/portable archives/MSI are not generated. No local profile, logs, PDBs or vendor DLL belongs in a release.

@@ -14,6 +14,8 @@
     <EmbeddedResource Include="Localization/ru.json" LogicalName="Localization.ru.json" />
     <EmbeddedResource Include="../../KEYBOARD_AI_RULES.md" LogicalName="KeyboardAiInstructions.md" />
     <EmbeddedResource Include="../../MOUSE_AI_RULES.md" LogicalName="MouseAiInstructions.md" />
+    <EmbeddedResource Include="../../SCREEN_AI_RULES.md" LogicalName="ScreenAiInstructions.md" />
+    <Content Include="../../examples/screen-assignments.json" Link="examples/screen-assignments.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../examples/mouse-assignments.json" Link="examples/mouse-assignments.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../examples/keyboard-assignments.json" Link="examples/keyboard-assignments.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="../LovenseIntegrator.Core/LovenseIntegrator.Core.csproj" />

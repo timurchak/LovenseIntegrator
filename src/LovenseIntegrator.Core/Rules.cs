@@ -5,7 +5,7 @@ public enum EventKind
     KeyDown, KeyUp, KeyHeld, DoublePress, Chord, Sequence, PressCount,
     TypingRateAbove, TypingRateBelow, InputIdle, MouseDown, MouseUp,
     MouseWheel, ForegroundChanged, Timer,
-    KeyReleasedAfterHold, TriplePress, CleanTypingStreak, ActivityResumed, MouseDoubleClick, MouseHeld
+    KeyReleasedAfterHold, TriplePress, CleanTypingStreak, ActivityResumed, MouseDoubleClick, MouseHeld, ScreenEvent
 }
 public enum ActionKind { Vibrate, Pulse, RateMapped, Stop }
 
@@ -32,10 +32,13 @@ public sealed class Rule
     public int WheelIdleMs { get; set; } = 150;
     public string ExcludedKeys { get; set; } = "";
     public string WindowTitleContains { get; set; } = "";
+    public string ScreenEventId { get; set; } = "wow.combat.enter";
 
     public Rule Copy() => (Rule)MemberwiseClone();
     public string? Validate()
     {
+        if (Event == EventKind.ScreenEvent && (ScreenEvents.Find(ScreenEventId) is null || ScreenEventId == "wow.test" || KeyboardLayer || MouseLayer || Action == ActionKind.RateMapped))
+            return "Choose a supported Screen event and Vibrate, Pulse or Stop.";
         if (Keys is null || Process is null || ToyId is null || ExcludedKeys is null || WindowTitleContains is null) return "Keys, application and toy fields cannot be null.";
         if (KeyboardLayer && (Event != EventKind.KeyDown || Action == ActionKind.RateMapped)) return "Keyboard assignments trigger on key press: vibration, pulse or stop.";
         if (MouseLayer && (KeyboardLayer || Event != EventKind.MouseDown || Action == ActionKind.RateMapped)) return "Mouse assignment: MouseLayer=true, KeyboardLayer=false, Event=MouseDown, action Vibrate/Pulse/Stop.";
@@ -63,7 +66,7 @@ public sealed class Rule
         (string.IsNullOrWhiteSpace(WindowTitleContains) || input.WindowTitle.Contains(WindowTitleContains.Trim(), StringComparison.OrdinalIgnoreCase));
 }
 
-public sealed record InputEvent(EventKind Kind, long AtMs, string Key = "", string Process = "", double Value = 0, string WindowTitle = "");
+public sealed record InputEvent(EventKind Kind, long AtMs, string Key = "", string Process = "", double Value = 0, string WindowTitle = "", string ScreenEventId = "");
 public sealed record RuleMatch(Rule Rule, double Value, bool RenewWheel = false)
 {
     public ToyCommand Command()
@@ -131,6 +134,7 @@ public sealed class RuleEngine
             .ThenBy(r => string.IsNullOrWhiteSpace(r.Keys) ? int.MaxValue : r.KeyList().Length).ThenBy(r => r.Id).FirstOrDefault() : null;
         foreach (var rule in rules.Where(r => r.Enabled).OrderByDescending(r => r.Priority).ThenBy(r => r.Id))
         {
+            if ((rule.Event == EventKind.ScreenEvent) != (input.Kind == EventKind.ScreenEvent)) continue;
             if (rule.MouseLayer && rule.Id != mouseLayer?.Id) continue;
             if (mouseLayer is not null && !rule.MouseLayer && rule.Event == input.Kind) continue;
             if (rule.KeyboardLayer && rule.Id != keyboardLayer?.Id) continue;
@@ -156,6 +160,9 @@ public sealed class RuleEngine
 
     private (bool Match, double Value, bool Continuous) Evaluate(Rule r, InputEvent e, long idleGap, long releaseDuration)
     {
+        // Screen telemetry must not advance keyboard/time conditions or vice versa.
+        if (r.Event == EventKind.ScreenEvent || e.Kind == EventKind.ScreenEvent)
+            return (r.Event == e.Kind && r.ScreenEventId == e.ScreenEventId, e.Value, false);
         if (r.MouseLayer) return (e.Kind is EventKind.MouseDown or EventKind.MouseWheel && r.MatchesKeyboardKey(e.Key), e.Value, false);
         var any = string.IsNullOrWhiteSpace(r.Keys);
         var key = r.KeyboardLayer ? r.MatchesKeyboardKey(e.Key) : any || string.Equals(r.Keys.Trim(), e.Key, StringComparison.OrdinalIgnoreCase);
