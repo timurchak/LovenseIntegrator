@@ -6,7 +6,11 @@ A Windows application for manual Lovense control and event-triggered actions. In
 
 The primary workflow is visually selecting keyboard/mouse inputs, assigning feedback to groups, excluding inputs and increasing intensity for selected windows. This is implemented. The original goal of full control is broader than the current prototype: vibration, software pulse, Stop and speed-based intensity exist, but not every feature of every toy model.
 
-The latest request is to translate the whole project into English and publish it to `git@github.com:timurchak/LovenseIntegrator.git`. The remote was accessible and empty at the start; Git was initialized with `main`. UI text, defaults, examples, AI instructions and project documentation are now English, including all 600 catalog ideas and 30 recipes. JSON contracts and user-authored profile content are preserved. Check Git for the actual publication state.
+The project was translated to English and published to `git@github.com:timurchak/LovenseIntegrator.git` on `main` (initial commit `20a9da7`). UI text, defaults, examples, AI instructions and documentation are English, including all 600 catalog ideas and 30 recipes. JSON contracts and user-authored profile content are preserved.
+
+The latest request is a Windows installer, GitHub releases and in-app auto-updates. Implemented with Velopack 1.2.161, a self-contained x64 package, stable GitHub feed, automatic background checks/downloads and restart through the Updates tab. Package ID `LovenseIntegratorApp` deliberately differs from the profile directory. Worker/test processes cannot auto-apply updates. SDK redistribution is avoided: first Bluetooth use fetches the pinned DLL directly from Lovense and caches it. See [RELEASING.md](RELEASING.md) for tags, workflows, lifecycle and verification. Check actual GitHub Actions/releases for publication state rather than inferring it from this document.
+
+Release work passed 192 offline logic checks, WPF smoke, 3031 UI assertions in each culture (6062 total) and 9 BLE worker recovery checks. A real installer test installed 0.0.1, rejected a damaged 0.0.2 package, then downloaded/applied the valid update and ran version 0.0.2. Test profiles are external to the install folder. No physical motor commands were used. The installer is unsigned; code signing remains an owner-provided dependency.
 
 The English build passed 176 logic checks, WPF smoke, 3026 UI assertions in each of ru-RU/en-US (6052 total), and 9 BLE worker recovery checks. English keyboard, mouse and minimum-size editor renders were inspected. Smoke input now uses the field's numeric culture instead of a hardcoded decimal comma. Hardware behavior was not retested for this text/layout change.
 
@@ -41,7 +45,7 @@ One immediate launch of the published build found no devices; graceful close/reo
 
 - Discord was cancelled. Neither Windows system notifications nor a visible server bot meet the user's requirements. No Discord connection, events or tokens are implemented.
 - Screen-region capture/recognition is later: monitor/region selection, preview, color/template detection, then OCR, with debounce and detector tests. None is running now.
-- No tray, installer, autostart, AND/OR condition groups, multiple actions per rule or automatic BLE → REST fallback.
+- No tray, autostart, AND/OR condition groups, multiple actions per rule or automatic BLE → REST fallback.
 - No background synchronization of battery/connection state into the UI. Native disconnection is handled inside BLE; UI gets snapshots during discovery and a separate worker-failure notification.
 - Physical haptic latency is unmeasured. 100/150 ms are software durations, not motor latency guarantees.
 - Stop delivery cannot be guaranteed after radio loss or worker failure.

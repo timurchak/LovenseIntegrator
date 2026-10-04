@@ -5,13 +5,17 @@
     <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>LovenseIntegrator</AssemblyName>
+    <StartupObject>LovenseIntegrator.Desktop.App</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <EmbeddedResource Include="../../KEYBOARD_AI_RULES.md" LogicalName="KeyboardAiInstructions.md" />
     <EmbeddedResource Include="../../MOUSE_AI_RULES.md" LogicalName="MouseAiInstructions.md" />
     <Content Include="../../examples/mouse-assignments.json" Link="examples/mouse-assignments.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../examples/keyboard-assignments.json" Link="examples/keyboard-assignments.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="../LovenseIntegrator.Core/LovenseIntegrator.Core.csproj" />
-    <Content Include="../../native/LovenseBLE_Lib.dll" Condition="Exists('../../native/LovenseBLE_Lib.dll')" Link="LovenseBLE_Lib.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../native/LovenseBLE_Lib.dll" Condition="Exists('../../native/LovenseBLE_Lib.dll') and '$(IncludeVendorSdk)' != 'false'" Link="LovenseBLE_Lib.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

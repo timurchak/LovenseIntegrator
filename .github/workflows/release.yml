@@ -1,0 +1,66 @@
+name: Windows release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - name: Validate version and release notes
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $version = ([xml](Get-Content Directory.Build.props -Raw)).Project.PropertyGroup.Version
+          if ($env:RELEASE_TAG -cne "v$version" -or $version -notmatch '^\d+\.\d+\.\d+$') { throw 'Tag must match the stable version in Directory.Build.props.' }
+          if (-not (Test-Path "releases/$version.md")) { throw 'Release notes are required.' }
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Build and logic tests
+        shell: pwsh
+        run: ./scripts/Build.ps1
+      - name: WPF smoke and UI harness
+        shell: pwsh
+        run: |
+          ./scripts/Test-Desktop.ps1
+          ./scripts/Test-UiHarness.ps1
+          ./scripts/Test-BleRecovery.ps1
+      - name: Build self-contained installer
+        shell: pwsh
+        run: ./scripts/Package.ps1 -Version $env:RELEASE_VERSION -OutputDirectory dist/release
+      - name: Install and upgrade verification
+        shell: pwsh
+        run: ./scripts/Test-Installer.ps1 -ReleaseDirectory dist/release
+      - name: Publish GitHub release and update feed
+        shell: pwsh
+        env:
+          VPK_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          dotnet tool run vpk -- upload github --repoUrl https://github.com/timurchak/LovenseIntegrator --outputDir dist/release --channel win --tag $env:RELEASE_TAG --targetCommitish $env:RELEASE_COMMIT --releaseName "Lovense Integrator $env:RELEASE_VERSION" --publish
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release upload failed.' }
+      - name: Release verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-verification
+          path: |
+            artifacts/**/report.json
+            artifacts/**/*.txt
+            artifacts/ui-harness/**/*.png
+            artifacts/installer/**/before.json
+            artifacts/installer/**/after.json
+            artifacts/installer/**/corrupt.json
+          retention-days: 14

@@ -6,7 +6,9 @@ The user's machine exposes Generic Bluetooth Radio and Microsoft Bluetooth LE En
 
 Research sources: [official Windows BLE SDK and C# demo](https://developer.lovense.com/docs/game-engine-plugins/windows_ble), with a local demo copy at `.tools/lovense-demo/LovenseBLETools.cs`. Callback ABI was checked against the C# demo because the web summary omits some arguments. The application is x64. BleTransport stores delegates in fields; keep them rooted while the SDK can call back. SDK symbols identify families (`s` = Lush, `x` = Ferri), not device generations.
 
-The tested binary is pinned by [Setup-Ble.ps1](../scripts/Setup-Ble.ps1). Do not substitute an unverified DLL or remove the hash check to make a build pass. Terms for public redistribution of the vendor DLL have not been independently verified.
+The tested binary is pinned by [Setup-Ble.ps1](../scripts/Setup-Ble.ps1) and `Services/BleSdkInstaller.cs`; update both only after verification. Do not substitute an unverified DLL or remove the hash check to make a build pass. Release packages exclude the DLL because terms for public redistribution have not been independently verified. On first Bluetooth use, the app downloads it directly from `https://developer.lovense.com/LovenseBLE_Lib.dll`, checks SHA-256 and caches it at `%LOCALAPPDATA%/LovenseIntegrator/native/<hash>/LovenseBLE_Lib.dll`. Subsequent launches work offline. A valid development DLL beside the executable takes precedence. A hash mismatch blocks loading and explains that a newer app release may be needed.
+
+SDK download happens before the worker connection timeout begins. The hidden worker verifies the selected file again and installs a DllImport resolver for its absolute path; the UI never loads native code. Demo workers bypass the SDK entirely.
 
 ## Incident: connecting two devices
 

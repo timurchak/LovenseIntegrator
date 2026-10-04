@@ -76,6 +76,22 @@ public partial class MainWindow
         {
             await vm.DiscoverAsync(); await Layout();
             Check(vm.ConnectionName == "Demo mode" && vm.Toys.Count == 2, "demo transport only");
+            await Group("Updates tab and development-build guard", async () =>
+            {
+                Modes.SelectedItem = UpdatesTab; await Layout(1120, 720);
+                Check(ReferenceEquals(UpdatesPanel.DataContext, updates), "updates has its own binding context");
+                Check(!updates.CanCheck && !CheckUpdatesButton.IsEnabled, "development builds cannot download updates");
+                Check(!updates.CanRestart && !RestartUpdateButton.IsEnabled, "restart requires a verified package");
+                Check(UpdateStatus.Text.Contains("Development build"), "uninstalled state is explained");
+                Check(!vm.Running, "updates view keeps rules paused");
+                var bitmap = new RenderTargetBitmap(1120, 720, 96, 96, PixelFormats.Pbgra32);
+                var background = new DrawingVisual(); using (var dc = background.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, 1120, 720));
+                bitmap.Render(background);
+                bitmap.Render(content);
+                var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using var image = File.Create(Path.Combine(directory, "updates-1120.png")); encoder.Save(image);
+                Modes.SelectedItem = RulesTab; await Layout();
+            });
             await Group("Event catalog categories, search and empty results", () =>
             {
                 checks += new EventPickerWindow(EventKind.KeyDown).VerifyHarness();
@@ -384,6 +400,7 @@ public partial class MainWindow
         {
             trace.Listeners.Remove(listener); trace.Switch.Level = oldLevel;
             await vm.DisposeAsync();
+            await updates.DisposeAsync();
         }
     }
 }

@@ -132,6 +132,26 @@
      <ListBox Grid.Row="1" ItemsSource="{Binding Journal}"><ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" FontSize="12"/></DataTemplate></ListBox.ItemTemplate></ListBox>
     </Grid></Border></TabItem>
     <TabItem Header="  Screen · later  "><Border Style="{StaticResource Card}" Margin="0,10,0,0"><StackPanel><TextBlock Text="Screen region recognition" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="Next stage: region selection, template matching, color and OCR. Results will trigger the same rules and actions." Margin="0,16,0,0" Foreground="{StaticResource Muted}"/><TextBlock Text="Screen capture is not running." Margin="0,16,0,0"/></StackPanel></Border></TabItem>
+    <TabItem x:Name="UpdatesTab" Header="{Binding DataContext.TabTitle, ElementName=UpdatesPanel}">
+     <Border x:Name="UpdatesPanel" Style="{StaticResource Card}" Margin="0,10,0,0">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel MaxWidth="640" HorizontalAlignment="Left">
+       <TextBlock Text="App updates" FontSize="24" FontWeight="SemiBold"/>
+       <TextBlock Text="{Binding Version, StringFormat=Installed version: {0}}" Foreground="{StaticResource Muted}" Margin="0,8,0,24"/>
+       <CheckBox Content="Automatically check and download updates" IsChecked="{Binding Automatic}" Margin="0,0,0,12"/>
+       <TextBlock Text="Stable releases are checked at startup and every 6 hours. Downloads happen in the background. A downloaded update is installed the next time you start the app." TextWrapping="Wrap" Foreground="{StaticResource Muted}"/>
+       <TextBlock Text="Your rules and profiles are preserved. Restarting stops active effects and disconnects devices. Rules remain paused after the update." TextWrapping="Wrap" Foreground="{StaticResource Muted}" Margin="0,12,0,24"/>
+       <TextBlock x:Name="UpdateStatus" Text="{Binding Status}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+       <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress, Mode=OneWay}" Height="6" Margin="0,16,0,20"/>
+       <WrapPanel>
+        <Button x:Name="CheckUpdatesButton" Content="Check for updates" Click="CheckUpdates" IsEnabled="{Binding CanCheck}"/>
+        <Button x:Name="RestartUpdateButton" Content="Restart to update" Click="RestartToUpdate" IsEnabled="{Binding CanRestart}" Background="{StaticResource Accent}" Foreground="White"/>
+        <Button Content="Release notes ↗" Click="OpenReleases"/>
+       </WrapPanel>
+       <TextBlock Text="{Binding PreferenceError}" TextWrapping="Wrap" Foreground="#B13C50" Margin="0,12,0,0"/>
+       <TextBlock Text="Source: github.com/timurchak/LovenseIntegrator" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,24,0,0"/>
+      </StackPanel></ScrollViewer>
+     </Border>
+    </TabItem>
    </TabControl>
   </Grid>
   <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="12" Margin="0,16,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

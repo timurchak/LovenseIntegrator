@@ -6,11 +6,15 @@ For development and future sessions, start with [AGENTS.md](AGENTS.md) and [proj
 
 ## Run
 
+Download **LovenseIntegratorApp-win-Setup.exe** from [GitHub Releases](https://github.com/timurchak/LovenseIntegrator/releases/latest) and run it. Windows 10/11 x64 is required. Installation is per user, includes .NET and adds Start menu/desktop shortcuts. The current installer is unsigned; Windows may show a SmartScreen prompt.
+
+The **Updates** tab checks stable GitHub releases, downloads updates in the background and offers **Restart to update**. Automatic checks run 10 seconds after startup and every six hours; they can be disabled. Downloaded updates apply on the next launch. Restart stops effects and disconnects devices first; rules stay paused afterward. Profiles remain in `%LOCALAPPDATA%\LovenseIntegrator`, separate from installed files in `%LOCALAPPDATA%\LovenseIntegratorApp`.
+
 The self-contained local build is `dist/win-x64/LovenseIntegrator.exe`; no installed .NET runtime is required. A normal launch starts in demo mode with rules paused. The interface is English; existing user-authored rule names are preserved.
 
 1. Select **Bluetooth (direct connection)**.
 2. Turn on the toy and release its connection from your phone or another application.
-3. Click **Connect / refresh**. Scanning takes about four seconds, followed by connection. Refresh stops current effects and pauses rules.
+3. Click **Connect / refresh**. The first Bluetooth connection downloads the verified SDK directly from Lovense and requires internet access. Later connections use the cached file. Scanning takes about four seconds, followed by connection. Refresh stops current effects and pauses rules.
 4. Select a connected toy. Use manual controls to test a short effect at a low intensity when ready.
 5. Configure and save rules, then click **Enable rules**.
 
@@ -25,7 +29,7 @@ An alternative transport is **Lovense Remote (Local API)**. The documented PC en
 ## Available features
 
 - Manual vibration, intensity 0–20, duration 0.1–300 seconds over BLE, pulse and Stop. REST effects must last more than one second.
-- Official `LovenseBLE_Lib.dll` discovery, connection and battery queries; missing SDK produces an error rather than a simulated connection.
+- Official `LovenseBLE_Lib.dll` discovery, connection and battery queries; automatic download and SHA-256 verification of the pinned SDK.
 - Local API GetToys, Function and Pattern, with endpoint/device selection and error handling.
 - Demo Lush/Ferri without physical commands.
 - Visual **Keyboard** and **Mouse** modes with grouped selections, exclusions, presets, per-application/title conditions, import/export and embedded AI instructions.
@@ -104,7 +108,7 @@ The highest-priority matching rule wins; ties use stable Id. New commands replac
 
 ## Limits and later stages
 
-This is a prototype. Current physical actions target vibration on Lush/Ferri; other functions/models need a capability table and hardware verification. UI battery/connection snapshots update on discovery/refresh, not by background polling. No tray, installer, autostart, multi-action rules, nested AND/OR conditions or automatic transport fallback yet.
+This is a prototype. Current physical actions target vibration on Lush/Ferri; other functions/models need a capability table and hardware verification. UI battery/connection snapshots update on discovery/refresh, not by background polling. No tray, autostart, multi-action rules, nested AND/OR conditions or automatic transport fallback yet.
 
 BLE sends levels without durations; the app runs stop timers and pulses. Stop delivery cannot be guaranteed after worker failure or radio loss. REST receives a bounded duration. Better acknowledgment handling, live connection-state synchronization and coordinated recovery remain future work.
 
@@ -125,6 +129,6 @@ Discord was cancelled because Windows notifications and a visible server bot do 
 
 The solution contains Core, Desktop and console Tests without third-party test frameworks. The English build passed 176 logic checks, WPF smoke, 6052 UI assertions and 9 worker recovery checks. See [development guidance](docs/DEVELOPMENT.md) and [session state](docs/SESSION_STATE.md) for scope and current results. Offscreen WPF tests do not replace global input, real monitor DPI or hardware tests.
 
-The SDK binary is downloaded from the vendor and excluded from Git. Verify distribution terms before publishing it in a binary release.
+The SDK binary is excluded from Git and release packages. Installed apps obtain it directly from the vendor. See [Releases and updates](docs/RELEASING.md) for packaging, CI, version tags, upgrade tests and signing limitations.
 
 References: [Lovense Windows BLE SDK](https://developer.lovense.com/docs/game-engine-plugins/windows_ble), [Lovense Standard API](https://developer.lovense.com/docs/standard-solutions/standard-api), [WPF on .NET 10](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/whats-new/net100).

@@ -8,9 +8,38 @@ namespace LovenseIntegrator.Desktop;
 
 public partial class App : Application
 {
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        // A worker must never apply an update or relaunch as a visible application.
+        var diagnostic = args.Any(a => a is "--ble-worker" or "--ble-scan" or "--ble-check" or "--ble-recovery-harness" or "--ui-harness" or "--smoke" or "--update-harness");
+        var hook = args.Any(a => a.StartsWith("--veloapp-", StringComparison.Ordinal));
+        using var instance = !diagnostic && !hook ? new Mutex(false, @"Local\LovenseIntegrator.UI." + Environment.UserName) : null;
+        var owned = false;
+        try
+        {
+            if (instance is not null)
+            {
+                try { owned = instance.WaitOne(0); } catch (AbandonedMutexException) { owned = true; }
+                if (!owned) { MessageBox.Show("Lovense Integrator is already running.", "Lovense Integrator"); return; }
+            }
+            Velopack.VelopackApp.Build().SetAutoApplyOnStartup(!diagnostic && !hook).Run();
+            var app = new App();
+            app.InitializeComponent();
+            app.Run();
+        }
+        finally { if (owned) instance!.ReleaseMutex(); }
+    }
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Contains("--update-harness"))
+        {
+            try { await UpdateHarness.RunAsync(e.Args); Shutdown(0); }
+            catch { Shutdown(1); }
+            return;
+        }
         if (e.Args.Contains("--ble-worker"))
         {
             await BleWorkerHost.RunAsync(e.Args[Array.IndexOf(e.Args, "--ble-worker") + 1], e.Args.Contains("--fake-ble"));

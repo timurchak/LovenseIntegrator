@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>
  <ItemGroup>
+  <Compile Include="../../src/LovenseIntegrator.Desktop/Services/UpdateService.cs" Link="UpdateService.cs"/>
+  <Compile Include="../../src/LovenseIntegrator.Desktop/Services/BleSdkInstaller.cs" Link="BleSdkInstaller.cs"/>
   <ProjectReference Include="../../src/LovenseIntegrator.Core/LovenseIntegrator.Core.csproj"/>
   <Compile Include="../../src/LovenseIntegrator.Desktop/Transports/LocalApiTransport.cs" Link="LocalApiTransport.cs"/>
   <Compile Include="../../src/LovenseIntegrator.Desktop/Transports/BleTransport.cs" Link="BleTransport.cs"/>

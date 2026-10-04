@@ -20,6 +20,8 @@ The vendor DLL is downloaded to `native/LovenseBLE_Lib.dll` and copied during bu
 
 The executable is `dist/win-x64/LovenseIntegrator.exe`; it does not require an installed .NET runtime. Edit source, not published output. Root AI instructions are embedded resources and examples are copied beside the executable.
 
+For an installable build use `./scripts/Package.ps1`, then `./scripts/Test-Installer.ps1 -ReleaseDirectory dist/releases/0.1.0` (substitute the current version). See [RELEASING.md](RELEASING.md). Plain development builds do not check for app updates.
+
 ## Verification matrix
 
 | Change | Run | Artifact / scope |
@@ -76,4 +78,4 @@ Scan does not start the motor, but it connects to physical devices and sends Sto
 
 ## Git publication
 
-The user selected `git@github.com:timurchak/LovenseIntegrator.git`. Push source, scripts, examples and documentation. Inspect `git diff --cached --stat` and the staged file list before committing; local profiles, reports, dumps, dependencies and vendor/build binaries must stay excluded. Use ordinary pushes and verify the remote commit afterward. Publishing source does not imply authorization to create a release or distribute the vendor SDK binary.
+The user selected `git@github.com:timurchak/LovenseIntegrator.git` and subsequently requested installers, GitHub releases and auto-updates. Inspect staged files before committing; local profiles, reports, dumps, dependencies and vendor/build binaries must stay excluded. Use ordinary pushes and verify the remote commit afterward. Release packages exclude the vendor SDK binary. Pushing a version tag starts the release workflow; see [RELEASING.md](RELEASING.md).

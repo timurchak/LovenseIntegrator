@@ -16,6 +16,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(50) };
     private readonly Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
     private readonly SemaphoreSlim transportGate = new(1, 1);
+    private readonly CancellationTokenSource discoveryLifetime = new();
     private IToyTransport transport = new DemoTransport();
     private int activeTransportIndex = -1;
     private string activeApiUrl = "";
@@ -242,7 +243,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
             var selectedId = SelectedToy?.Id;
             ConnectionName = transport.Name; Toys.Clear();
             Log("Finding devices…");
-            foreach (var toy in await transport.DiscoverAsync(CancellationToken.None)) Toys.Add(toy);
+            foreach (var toy in await transport.DiscoverAsync(discoveryLifetime.Token)) Toys.Add(toy);
             SelectedToy = Toys.FirstOrDefault(t => t.Id == selectedId) ?? Toys.FirstOrDefault(); Changed(nameof(SelectedToy)); Persist();
             Changed(nameof(Targets));
             Log(Toys.Any(t => t.Connected) ? $"Devices found: {Toys.Count}. Rules are paused." : "No devices connected. Check power and connection.");
@@ -327,8 +328,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IAsyncDisposable
     private void Changed([CallerMemberName] string? property = null) => PropertyChanged?.Invoke(this, new(property));
     public async ValueTask DisposeAsync()
     {
-        closing = true; await StopAsync(); input.Dispose();
+        if (closing) return;
+        closing = true; discoveryLifetime.Cancel(); await StopAsync(); input.Dispose();
         await transportGate.WaitAsync();
-        try { await transport.DisposeAsync(); } finally { transportGate.Release(); }
+        try { await transport.DisposeAsync(); } finally { transportGate.Release(); discoveryLifetime.Dispose(); }
     }
 }

@@ -7,6 +7,7 @@ This Windows desktop application controls Lovense toys through configurable even
 1. Read [docs/README.md](docs/README.md) and [docs/SESSION_STATE.md](docs/SESSION_STATE.md).
 2. Before changing transports, read [docs/BLUETOOTH.md](docs/BLUETOOTH.md). Before changing rules or imports, read [docs/RULES_AND_PROFILES.md](docs/RULES_AND_PROFILES.md).
 3. Commands and verification guidance are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md); the code map is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+   Read [docs/RELEASING.md](docs/RELEASING.md) before changing packaging, startup or updates.
 4. Compare historical results with current code and fresh reports. Previously recorded battery levels, PIDs and connections are not live state.
 
 The user authorized initializing Git and publishing to `git@github.com:timurchak/LovenseIntegrator.git` on 2026-10-04. Inspect actual Git status and remotes before making assumptions. The parent `C:\projects\AGENTS.md` applies to WoW addons and explicitly excludes unrelated projects.
@@ -24,6 +25,8 @@ The user authorized initializing Git and publishing to `git@github.com:timurchak
 
 - Preserve `%LOCALAPPDATA%\LovenseIntegrator\profile.json`. Tests use separate profiles under `artifacts/` through `ProfileStore.OverridePath`. Never replace the user's profile with demo defaults or translate their own saved names automatically.
 - Rules stay paused at startup, connection refresh, import and transport failure. Do not resume physical actions automatically after recovery.
+- Keep installation ID `LovenseIntegratorApp` distinct from the profile folder `LovenseIntegrator`; uninstall must not remove profiles. Workers/diagnostics must never auto-apply updates or start a visible UI. Stop/dispose the transport before update restart.
+- Keep Velopack NuGet and `dotnet-tools.json` versions aligned. Tags must match `Directory.Build.props`. Release packages must exclude the vendor DLL; first Bluetooth use downloads the pinned SDK from Lovense and verifies SHA-256.
 - Discovery/connection must not start vibration. Diagrams and effect previews do not send commands. Honor hardware-testing authorization already given in the session, but do not expand a connection test into motor activation.
 - Preserve Stop, `Ctrl+Alt+F12`, cancellation of previous timers and invalidation of queued commands. Do not accumulate stale effects.
 - Normal UI uses `IsolatedBleTransport`; native `BleTransport` runs in a hidden worker. Do not restore `_Quit` to refresh/shutdown of a working BLE session: a native crash was confirmed. Do not replace worker termination with `Environment.Exit` without physical revalidation: that also produced shutdown crashes.

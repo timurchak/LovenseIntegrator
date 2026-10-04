@@ -1,5 +1,7 @@
 # Architecture
 
+Installation and updates use Velopack, bootstrapped in `App.Main` before WPF. `UpdateService` owns bindable update state/preferences; `GithubUpdateBackend` talks to stable GitHub Releases. Normal startup applies pending updates, while workers and diagnostics opt out. `MainWindow.OnClosing` stops/disposes transports before a requested update restart. `BleSdkInstaller` obtains and verifies the vendor SDK before launching a real BLE worker. See [RELEASING.md](RELEASING.md) for packaging and lifecycle details.
+
 ## Projects and files
 
 | Area | Main source files | Responsibility |

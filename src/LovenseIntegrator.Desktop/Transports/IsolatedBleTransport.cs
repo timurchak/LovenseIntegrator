@@ -36,12 +36,14 @@ public sealed class IsolatedBleTransport : IToyTransport
     private async Task StartAsync(CancellationToken ct)
     {
         if (worker is not null) return;
+        var sdkPath = fake ? null : await BleSdkInstaller.EnsureAsync(ct, message => Message?.Invoke(message)).ConfigureAwait(false);
         var name = "LovenseIntegrator-" + Guid.NewGuid().ToString("N");
         pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, WorkingDirectory = AppContext.BaseDirectory };
         if (Path.GetFileNameWithoutExtension(start.FileName).Equals("dotnet", StringComparison.OrdinalIgnoreCase)) start.ArgumentList.Add(Assembly.GetExecutingAssembly().Location);
         start.ArgumentList.Add("--ble-worker"); start.ArgumentList.Add(name);
         if (fake) start.ArgumentList.Add("--fake-ble");
+        if (sdkPath is not null) { start.ArgumentList.Add("--ble-sdk"); start.ArgumentList.Add(sdkPath); }
         worker = new Process { StartInfo = start, EnableRaisingEvents = true };
         worker.Exited += (_, _) => Fail(new IOException("Bluetooth worker exited. Click «Connect / refresh» to reconnect."));
         if (!worker.Start()) throw new IOException("Could not start the Bluetooth worker.");
@@ -132,6 +134,15 @@ internal static class BleWorkerHost
 
     public static async Task RunAsync(string pipeName, bool fake)
     {
+        if (!fake)
+        {
+            var args = Environment.GetCommandLineArgs();
+            var index = Array.IndexOf(args, "--ble-sdk");
+            if (index < 0 || index + 1 >= args.Length || !await BleSdkInstaller.IsValidAsync(args[index + 1], CancellationToken.None))
+                throw new IOException("A verified Bluetooth SDK is required.");
+            NativeLibrary.SetDllImportResolver(typeof(BleTransport).Assembly, (name, _, _) =>
+                name == BleSdkInstaller.FileName ? NativeLibrary.Load(args[index + 1]) : IntPtr.Zero);
+        }
         using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await pipe.ConnectAsync(7000);
         using var reader = new StreamReader(pipe, Encoding.UTF8, leaveOpen: true);

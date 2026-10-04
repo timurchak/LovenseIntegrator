@@ -23,10 +23,15 @@ public partial class MainWindow : Window
     private RuleEditor? recordingDraft;
     private string originalKeys = "";
     private bool refreshingApplications;
+    private readonly UpdateService updates;
+    private bool restartForUpdate;
     public MainWindow() : this(0) { }
     public MainWindow(int initialTransport)
     {
         InitializeComponent(); vm = new(initialTransport); DataContext = vm;
+        updates = new(new GithubUpdateBackend(), Path.Combine(Path.GetDirectoryName(ProfileStore.PathName)!, "updates.json"));
+        UpdatesPanel.DataContext = updates;
+        if (ProfileStore.OverridePath is null) Loaded += (_, _) => updates.Start();
         KeyboardMode.Initialize(vm);
         MouseMode.Initialize(vm);
         if (Environment.GetCommandLineArgs().Contains("--mouse")) Modes.SelectedItem = MouseTab;
@@ -64,6 +69,18 @@ public partial class MainWindow : Window
         PreviewKeyUp += OnKeyUp;
     }
     private async void Toggle(object sender, RoutedEventArgs e) => await vm.ToggleAsync();
+    private async void CheckUpdates(object sender, RoutedEventArgs e) => await updates.CheckAsync();
+    private void RestartToUpdate(object sender, RoutedEventArgs e)
+    {
+        if (!updates.CanRestart || closing) return;
+        restartForUpdate = true;
+        Close();
+    }
+    private void OpenReleases(object sender, RoutedEventArgs e)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(UpdateService.RepositoryUrl + "/releases") { UseShellExecute = true }); }
+        catch (Exception ex) { vm.Log("Could not open releases: " + ex.Message); }
+    }
     private async void StopAll(object sender, RoutedEventArgs e) => await vm.StopAsync();
     private async void Discover(object sender, RoutedEventArgs e) => await vm.DiscoverAsync();
     private async void Manual(object sender, RoutedEventArgs e) { if (Valid(ManualSeconds)) await vm.ManualAsync(false); }
@@ -167,8 +184,20 @@ public partial class MainWindow : Window
         e.Cancel = true;
         if (closing) return;
         closing = true;
-        try { hotkey?.Dispose(); await vm.DisposeAsync(); }
-        catch (Exception ex) { vm.Log($"Shutdown: {ex.Message}"); }
+        try
+        {
+            IsEnabled = false;
+            hotkey?.Dispose();
+            // Stop physical actions before waiting on any download cancellation.
+            await vm.DisposeAsync();
+            await updates.DisposeAsync();
+            if (restartForUpdate) updates.RestartAfterShutdown();
+        }
+        catch (Exception ex)
+        {
+            vm.Log($"Shutdown: {ex.Message}");
+            if (restartForUpdate) MessageBox.Show(this, "The update could not be started. Reopen the app to retry.\n\n" + ex.Message, "App update", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
         finally { closed = true; Close(); }
     }
     internal async Task RunSmokeAsync(string directory)
