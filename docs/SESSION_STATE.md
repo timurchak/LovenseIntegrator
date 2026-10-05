@@ -1,4 +1,12 @@
-# Session state — 2026-10-04
+# Session state — 2026-10-05
+
+## User-facing README — 2026-10-05
+
+Reworked the root README as a download-first product overview: direct Windows installer link, real interface screenshots, concise feature descriptions, four-step setup and essential compatibility/Stop notes. Preserved the previous detailed documentation in [USER_GUIDE.md](USER_GUIDE.md), repaired its relative links and removed stale test counts. The documentation index links both entry points.
+
+The existing offscreen UI harness now emits four additional curated demo captures (`readme-*.png`), committed as `docs/images/{keyboard,mouse,screen,effect}.png`. It uses its isolated demo profile and restores its preceding in-memory profile after capture. Normal UI, transports, rules and packaging behavior are unchanged. Screenshot refresh instructions are in DEVELOPMENT.md.
+
+Verification: fresh Desktop Release build passed with zero warnings/errors; English/en-US UI harness passed 3364 assertions on 2026-10-05. All four screenshot assets were visually inspected. The direct latest-installer URL returned HTTP 200. Local documentation link and Git whitespace checks passed. Only demo devices were used; no physical connection/motor testing or local application publication was performed. Next step: refresh these images when the interface changes, using the documented harness command.
 
 ## Goal and decisions
 

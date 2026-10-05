@@ -39,6 +39,19 @@ BLE recovery harness starts an actual child process using DemoTransport. It chec
 
 A stale `failure.txt` may remain after an earlier failure: inspect timestamps and the latest exit code. Do not present an old PASS as a new result. Once relevant checks pass, do not repeat the entire suite without a new change or concern.
 
+### README screenshots
+
+The UI harness also renders `readme-keyboard.png`, `readme-mouse.png`, `readme-screen.png` and `readme-effect.png` from a curated demo profile. These are actual WPF views with rules paused, no real device identifiers and no hardware connection. The Screen connection shown is simulated by the harness. The fixture is restored afterward. These captures do not change normal application behavior.
+
+To refresh the English README images, run one language/culture combination:
+
+```powershell
+& ./.tools/dotnet/dotnet.exe build src/LovenseIntegrator.Desktop -c Release --nologo
+& ./.tools/dotnet/dotnet.exe src/LovenseIntegrator.Desktop/bin/Release/net10.0-windows/LovenseIntegrator.dll --ui-harness --culture en-US --language en
+```
+
+Check both exit codes and the fresh `artifacts/ui-harness/en/en-US/report.json`, inspect the four `readme-*.png` files, then copy them to `docs/images/` without the `readme-` prefix. Commit only these curated images; keep reports and profiles under ignored `artifacts/`. Existing documentation-only edits can reuse the committed images when the interface has not changed.
+
 ## Publishing while the application is open
 
 1. Identify the UI by its window/command line. The worker uses the same EXE with `--ble-worker`; two processes are expected.

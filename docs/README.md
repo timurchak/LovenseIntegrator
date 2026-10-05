@@ -1,9 +1,10 @@
 # Project documentation
 
-Entry point for future sessions. This knowledge snapshot was prepared on 2026-10-04. Current code and fresh verification results take precedence over historical counts.
+Entry point for future sessions. This knowledge snapshot was updated on 2026-10-05. Current code and fresh verification results take precedence over historical counts.
 
 | Document | Purpose |
 | --- | --- |
+| [USER_GUIDE.md](USER_GUIDE.md) | Detailed setup, keyboard/mouse workflows, imports and troubleshooting |
 | [AGENTS.md](../AGENTS.md) | Persistent project instructions |
 | [SESSION_STATE.md](SESSION_STATE.md) | Handoff: completed work, verification and deferred work |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Source map, event flow and responsibilities |
@@ -16,7 +17,7 @@ Entry point for future sessions. This knowledge snapshot was prepared on 2026-10
 
 Existing detailed references:
 
-- [Application README](../README.md): features and user workflows.
+- [Application README](../README.md): visual overview, download and quick start.
 - [Keyboard AI instructions](../KEYBOARD_AI_RULES.md) and [JSON example](../examples/keyboard-assignments.json).
 - [Mouse AI instructions](../MOUSE_AI_RULES.md) and [JSON example](../examples/mouse-assignments.json).
 - [Screen AI instructions](../SCREEN_AI_RULES.md) and [JSON example](../examples/screen-assignments.json).

@@ -565,6 +565,42 @@ public partial class MainWindow
                 }
                 vm.SetProfile(beforeScreen); vm.Screen.New();
             });
+            // Product screenshots use a curated demo profile, never the user's rules or devices.
+            // Keep these separate from diagnostic renders with deliberately invalid/edited fixtures.
+            var screenshotProfile = vm.GetProfile();
+            try
+            {
+                var typing = new Rule { Name = "Gentle typing feedback", KeyboardLayer = true, Keys = "", ExcludedKeys = "Escape,LeftCtrl,RightCtrl", Intensity = 3, DurationSeconds = 0.15, CooldownMs = 200 };
+                var gaming = new Rule { Name = "WASD in World of Warcraft", KeyboardLayer = true, Keys = "W,A,S,D", Process = "Wow", Intensity = 8, DurationSeconds = 0.15, CooldownMs = 200 };
+                var buttons = new Rule { Name = "A little feedback on every click", MouseLayer = true, Event = EventKind.MouseDown, Keys = "Left,Right,Middle,X1,X2", Intensity = 3, DurationSeconds = 0.1, CooldownMs = 0 };
+                var wheel = new Rule { Name = "Vibrate while scrolling", MouseLayer = true, Event = EventKind.MouseDown, Keys = "Up,Down", WheelContinuous = true, Intensity = 5, DurationSeconds = 0.1, CooldownMs = 0 };
+                var combat = new Rule { Name = "A pulse when combat starts", Event = EventKind.ScreenEvent, Keys = "", Process = "Wow", Action = ActionKind.Pulse, Intensity = 5, DurationSeconds = 1, PulseMs = 250 };
+                vm.SetProfile(new Profile { Rules = [typing, gaming, buttons, wheel, combat] });
+                vm.Log("Demo mode · Example assignments · No physical devices");
+                async Task CaptureReadme(string name)
+                {
+                    await Layout();
+                    var bitmap = new RenderTargetBitmap(1360, 900, 96, 96, PixelFormats.Pbgra32);
+                    var background = new DrawingVisual();
+                    using (var dc = background.RenderOpen()) dc.DrawRectangle(Background, null, new Rect(0, 0, 1360, 900));
+                    bitmap.Render(background); bitmap.Render(content);
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var output = File.Create(Path.Combine(directory, $"readme-{name}.png")); encoder.Save(output);
+                }
+                Modes.SelectedItem = KeyboardTab; KeyboardMode.Model.Load(gaming.Id); await Layout();
+                KeyboardMode.AssignmentEditor.EditorScroll.ScrollToTop();
+                await CaptureReadme("keyboard");
+                KeyboardMode.ScrollToSettings();
+                await CaptureReadme("effect");
+                Modes.SelectedItem = MouseTab; MouseMode.Model.Load(wheel.Id); await Layout();
+                MouseMode.AssignmentEditor.EditorScroll.ScrollToTop();
+                await CaptureReadme("mouse");
+                Modes.SelectedItem = ScreenTab; vm.Screen.Selected = combat; await Layout();
+                await vm.Screen.StopMonitoringAsync();
+                ScreenMode.AssignmentEditor.EditorScroll.ScrollToTop();
+                await CaptureReadme("screen");
+            }
+            finally { vm.SetProfile(screenshotProfile); }
             File.WriteAllText(Path.Combine(directory, "report.json"), JsonSerializer.Serialize(new { Result = "PASS", Language = L.Language, Culture = CultureInfo.CurrentCulture.Name, Checks = checks, Groups = groups,
                 Scope = "Real offscreen WPF controls/bindings/routed events; demo transport; no global hooks or live hardware; scaled raster output, not monitor DPI switching." }, new JsonSerializerOptions { WriteIndented = true }));
         }
